@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "core/intent/scope.md",
+                "file": "core/tasks/mcp_extension_engineer.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "scope"
+              "title": "mcp_extension_engineer"
             }
           }
         ]
@@ -185,10 +185,21 @@
   },
   "active": "143965710e5c3d86",
   "lastOpenFiles": [
-    "core/intent/manifesto.md",
-    "core/intent/scope.md",
-    "core/blueprints/capabilities.md",
+    "core/tasks/resource_economist.md",
+    "core/tasks/overlay_architect.md",
+    "core/tasks/mcp_extension_engineer.md",
+    "core/tasks",
+    "core/build/plan.md",
+    "core/build/create-reporter-8f2c.md",
     "core/index.md",
+    "core/build",
+    "core/answers/index.md",
+    "core/answers/watson_experiments.md",
+    "core/answers/vscode_extension_boilerplate.md",
+    "core/intent/scope.md",
+    "core/answers",
+    "core/intent/manifesto.md",
+    "core/blueprints/capabilities.md",
     "core/blueprints/scopes.md",
     "core/blueprints/use_case_dark_mode.md",
     "core/blueprints/resource_manager.md",
@@ -203,23 +214,12 @@
     "core/tracking/milestones.md",
     "core/tracking/local_vs_cloud_execution.md",
     "core/tracking/electron_snapping_limitation.md",
-    "core/tracking/chokidar_performance.md",
-    "core/tracking/atomic_bulk_write_rollback.md",
-    "core/intent/readme.md",
-    "core/ai_features/delegation_model.md",
-    "core/tracking/vscode_extension_pivot.md",
-    "core/tracking/task_complexity_routing.md",
-    "core/blueprints/forge_mode_definition.md",
-    "core/intent/README.md",
     "core/archive",
     "core/tracking",
     "core/blueprints",
     "core/intent",
     "core/ai_features",
     "core/issues",
-    "core/backlog",
-    "core/subsystems",
-    "core",
-    "brainstorm"
+    "core/backlog"
   ]
 }

@@ -1,0 +1,50 @@
+<h2>Forge Architecture: Integrated Orchestrator</h2>
+<p class="subtitle">Mapping Technical Blueprints to VS Code Extension Structure</p>
+
+<div class="mockup">
+  <div class="mockup-header">Proposed Project Structure</div>
+  <div class="mockup-body">
+    <pre style="background: transparent; color: inherit; padding: 0; margin: 0;">
+forge-extension/
+├── src/
+│   ├── extension.ts          # Entry point & subsystem orchestration
+│   ├── providers/
+│   │   └── ForgeSidebar.ts   # "Ghost Overlay" Webview implementation
+│   ├── core/
+│   │   ├── mcp.ts            # MCP Tool Bridge (Bob integration)
+│   │   ├── context.ts        # Context Engine (FS Watcher)
+│   │   └── resource.ts       # Resource Manager (Bobcoin Fuel Gauge)
+│   └── types/
+│       └── forge.d.ts        # Unified type definitions
+├── resources/
+│   └── forge-icon.svg        # Activity Bar icon
+└── package.json              # Extension manifest & commands
+    </pre>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Key Subsystem Mappings</h3>
+  <ul>
+    <li><strong>Ghost Overlay:</strong> Lives in the Sidebar via <code>ForgeSidebar.ts</code>.</li>
+    <li><strong>Context Engine:</strong> Uses native <code>vscode.workspace.createFileSystemWatcher</code>.</li>
+    <li><strong>MCP Hub:</strong> Exposes local tools to IBM Bob via a tool bridge.</li>
+  </ul>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Approve & Scaffold</h3>
+      <p>Proceed with generating the boilerplate for this structure.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="modify" onclick="toggleSelect(this)">
+    <div class="letter">✎</div>
+    <div class="content">
+      <h3>Request Changes</h3>
+      <p>Adjust the structure or subsystems before scaffolding.</p>
+    </div>
+  </div>
+</div>
