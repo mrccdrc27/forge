@@ -5,7 +5,6 @@ import { WatsonxClient } from './WatsonxClient';
 
 export interface RouteRequest {
   task: string;
-  complexity: 'high' | 'low';
 }
 
 export class ResourceArbitrator extends BaseService {
@@ -25,13 +24,41 @@ export class ResourceArbitrator extends BaseService {
     this.log('Resource Arbitrator disposed.');
   }
 
-  async executeTask(request: RouteRequest): Promise<any> {
-    const model = request.complexity === 'high' ? 'llama-3.3-70b' : 'granite-8b';
-    this.log(`Routing task to ${model} [Complexity: ${request.complexity}]`);
+  /**
+   * Determine the best model for a given task.
+   * Llama-3.3-70B: High-level planning, architecture, complex reasoning.
+   * Granite-3-8B: Bulk coding, unit tests, documentation, repetitive expansion.
+   */
+  private route(task: string): string {
+    const t = task.toLowerCase();
+    
+    // Reasoning Keywords (Bob / Llama)
+    const reasoningKeywords = ['plan', 'architecture', 'design', 'review', 'compare', 'refactor strategy'];
+    
+    // Execution Keywords (Forge Contractor / Granite)
+    const executionKeywords = ['implement', 'write code', 'fix bug', 'add test', 'document', 'boiler-plate', 'expansion'];
 
-    const estimatedTokens = 2000; // Placeholder
+    if (reasoningKeywords.some(kw => t.includes(kw))) {
+      return 'meta-llama/llama-3-3-70b-instruct';
+    }
+
+    if (executionKeywords.some(kw => t.includes(kw))) {
+      return 'ibm/granite-3-8b-instruct';
+    }
+
+    // Default to Llama for unknown reasoning-heavy starts, but usually Granite for everything else
+    return t.length > 200 ? 'meta-llama/llama-3-3-70b-instruct' : 'ibm/granite-3-8b-instruct';
+  }
+
+  async executeTask(request: RouteRequest): Promise<any> {
+    const model = this.route(request.task);
+    this.log(`Routing task to ${model}`);
+
+    // Estimate cost (heuristic: 1 char ~= 0.25 tokens)
+    const estimatedTokens = Math.floor(request.task.length * 0.25) + 1000; // + buffer
+    
     if (!this.sentry.hasBudget(estimatedTokens)) {
-      throw new Error('Insufficient Bobcoin budget to execute task.');
+      throw new Error('Gated: Insufficient Bobcoin budget for this task.');
     }
 
     const response = await this.watsonx.generate(request.task, model);

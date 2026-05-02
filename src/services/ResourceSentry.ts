@@ -14,8 +14,8 @@ export class ResourceSentry extends BaseService implements ISentry {
 
   // Cost per 1k tokens in Bobcoins
   private readonly pricing: Record<string, number> = {
-    'llama-3.3-70b': 1.0,  // Reasoning model (Expensive)
-    'granite-8b': 0.1,      // Execution model (Cheap)
+    'meta-llama/llama-3-3-70b-instruct': 1.0,  // Reasoning model (Expensive)
+    'ibm/granite-3-8b-instruct': 0.1,          // Execution model (Cheap)
     'default': 0.5
   };
 
@@ -36,15 +36,14 @@ export class ResourceSentry extends BaseService implements ISentry {
     this.totalInputTokens += input;
     this.totalOutputTokens += output;
 
-    const modelKey = model.toLowerCase().includes('granite') ? 'granite-8b' : 
-                     model.toLowerCase().includes('llama') ? 'llama-3.3-70b' : 'default';
+    const modelKey = this.pricing[model] ? model : 'default';
     
     const cost = (tokens / 1000) * this.pricing[modelKey];
     this.actualCost += cost;
 
     // Calculate "Saved" cost (what it would have cost if we used Llama for everything)
-    const baselineCost = (tokens / 1000) * this.pricing['llama-3.3-70b'];
-    if (modelKey === 'granite-8b') {
+    const baselineCost = (tokens / 1000) * this.pricing['meta-llama/llama-3-3-70b-instruct'];
+    if (model.includes('granite')) {
       this.savedCost += (baselineCost - cost);
     }
 
@@ -58,8 +57,14 @@ export class ResourceSentry extends BaseService implements ISentry {
     }
   }
 
+  predictCost(estimatedTokens: number, modelType: 'reasoning' | 'execution'): number {
+    const model = modelType === 'reasoning' ? 'meta-llama/llama-3-3-70b-instruct' : 'ibm/granite-3-8b-instruct';
+    return (estimatedTokens / 1000) * this.pricing[model];
+  }
+
   hasBudget(estimatedTokens: number): boolean {
-    const estimatedCost = (estimatedTokens / 1000) * this.pricing['default'];
+    // For gating, assume worst-case (reasoning) if unsure
+    const estimatedCost = (estimatedTokens / 1000) * this.pricing['meta-llama/llama-3-3-70b-instruct'];
     return (this.actualCost + estimatedCost) <= this.budget;
   }
 

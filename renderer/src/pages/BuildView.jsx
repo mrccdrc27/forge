@@ -15,15 +15,25 @@ const STATUS_ICON = {
 }
 
 export function BuildView() {
-  const { phase, bobStream, bobThinking, masterPlan, subagents, verificationReport, iteration } = useForgeStore()
+  const { phase, bobStream, bobThinking, masterPlan, subagents, verificationReport, iteration, bobcoins } = useForgeStore()
+  const isCritical = bobcoins.total >= bobcoins.limit
 
   return (
     <div className="page build-view">
+      {isCritical && (
+        <div className="global-warning">
+          ⚠️ BUDGET EXCEEDED: Resource Sentry has gated further actions.
+        </div>
+      )}
+      
       <div className="build-header">
         <div className="phase-label">{PHASE_LABELS[phase]}</div>
-        {iteration > 1 && (
-          <div className="iteration-badge">iteration {iteration}</div>
-        )}
+        <div className="header-actions">
+          <BobcoinFuelGauge compact />
+          {iteration > 1 && (
+            <div className="iteration-badge">iteration {iteration}</div>
+          )}
+        </div>
       </div>
 
       <div className="build-layout">
@@ -31,22 +41,20 @@ export function BuildView() {
         <div className="bob-panel">
           <div className="panel-title">
             <span className={`dot ${bobThinking ? 'thinking' : ''}`} />
-            Bob Shell
+            Bob Shell (Planning & Logic)
           </div>
           <pre className="bob-stream">
-            {bobStream || <span className="muted">Waiting for Bob...</span>}
+            {bobStream || <span className="muted">Waiting for Bob to stream thoughts...</span>}
           </pre>
         </div>
 
         {/* Right: subagent cards + plan */}
         <div className="agents-panel">
+          <div className="panel-title">Active Contractor Status</div>
           {masterPlan && (
             <div className="plan-summary">
               <div className="plan-stack">
                 {masterPlan.stack?.framework} · {masterPlan.stack?.language}
-              </div>
-              <div className="plan-estimate">
-                scope: {masterPlan.estimate}
               </div>
             </div>
           )}
@@ -75,14 +83,34 @@ export function BuildView() {
 }
 
 function AgentCard({ agent }) {
+  const isRunning = agent.status === 'running'
+  
   return (
-    <div className={`agent-card status-${agent.status}`}>
-      <div className="agent-status-icon">{STATUS_ICON[agent.status]}</div>
-      <div className="agent-info">
+    <div className={`agent-card status-${agent.status} ${isRunning ? 'active-task' : ''}`}>
+      <div className="agent-header">
+        <div className="agent-status-icon">{STATUS_ICON[agent.status]}</div>
         <div className="agent-name">{agent.name}</div>
+      </div>
+      
+      <div className="agent-body">
         <div className="agent-desc">{agent.description}</div>
+        
+        {isRunning && (
+          <div className="agent-live-log">
+            <span className="typing-cursor">_</span> IBM Granite is working...
+          </div>
+        )}
+
+        {agent.output && (
+          <div className="agent-output-summary">
+             {typeof agent.output === 'string' ? agent.output : 'Task completed successfully.'}
+          </div>
+        )}
+
         {agent.error && (
-          <div className="agent-error">{agent.error}</div>
+          <div className="agent-error-detail">
+            <strong>Error:</strong> {agent.error}
+          </div>
         )}
       </div>
     </div>

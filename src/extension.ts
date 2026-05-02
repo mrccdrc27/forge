@@ -6,6 +6,7 @@ import { WatsonxClient } from './services/WatsonxClient';
 import { ResourceArbitrator } from './services/ResourceArbitrator';
 import { MCPHub } from './services/MCPHub';
 import { AtomicWriter } from './services/AtomicWriter';
+import { HistoryExporter } from './services/HistoryExporter';
 
 let controller: ForgeController;
 
@@ -30,6 +31,9 @@ export function activate(context: vscode.ExtensionContext) {
   const writer = new AtomicWriter('atomic-writer', output);
   controller.registerService(writer);
 
+  const historyExporter = new HistoryExporter('history-exporter', output);
+  controller.registerService(historyExporter);
+
   const mcpHub = new MCPHub('mcp-hub', output);
   mcpHub.setWriter(writer);
   mcpHub.setSentry(sentry);
@@ -40,6 +44,7 @@ export function activate(context: vscode.ExtensionContext) {
   controller.setWatsonx(watsonx);
   controller.setArbitrator(arbitrator);
   controller.setWriter(writer);
+  controller.setHistoryExporter(historyExporter);
   controller.setMCPHub(mcpHub);
 
   context.subscriptions.push(controller);

@@ -6,6 +6,7 @@ import { WatsonxClient } from './services/WatsonxClient';
 import { ResourceArbitrator } from './services/ResourceArbitrator';
 import { MCPHub } from './services/MCPHub';
 import { AtomicWriter } from './services/AtomicWriter';
+import { HistoryExporter } from './services/HistoryExporter';
 
 export class ForgeController {
   private services: Map<string, IForgeService> = new Map();
@@ -16,9 +17,14 @@ export class ForgeController {
   private arbitrator?: ResourceArbitrator;
   private mcpHub?: MCPHub;
   private writer?: AtomicWriter;
+  private historyExporter?: HistoryExporter;
 
   constructor(context: vscode.ExtensionContext) {
     this.sidebarProvider = new ForgeSidebarProvider(context.extensionUri);
+  }
+
+  setHistoryExporter(historyExporter: HistoryExporter) {
+    this.historyExporter = historyExporter;
   }
 
   setSentry(sentry: ResourceSentry) {

@@ -7,36 +7,57 @@ const vscode = window.vscode;
 const callbacks = new Map();
 
 window.addEventListener('message', (event) => {
-  const { type, payload, requestId } = event.data;
+  const message = event.data;
   
-  if (requestId && callbacks.has(requestId)) {
-    const { resolve, reject } = callbacks.get(requestId);
-    callbacks.delete(requestId);
-    if (event.data.error) {
-      reject(event.data.error);
+  // Handle requests/responses
+  if (message.requestId && callbacks.has(message.requestId)) {
+    const { resolve, reject } = callbacks.get(message.requestId);
+    callbacks.delete(message.requestId);
+    if (message.error) {
+      reject(message.error);
     } else {
-      resolve(payload);
+      resolve(message.payload || message.data);
     }
     return;
   }
 
-  // Handle streaming or events
-  if (type === 'bob:stream') {
+  // Handle push messages from host
+  const command = message.command || message.type;
+  const payload = message.data || message.payload;
+
+  if (command === 'bob:stream') {
     const cb = window.forge._bobStreamCallback;
     if (cb) cb(payload);
   }
+
+  if (command === 'METRICS_UPDATE' || command === 'updateSentry') {
+    if (window.forge._updateBobcoins) {
+      // Extract metrics from payload
+      const metrics = payload.cost ? {
+        total: payload.cost.actual,
+        saved: payload.cost.saved,
+        limit: payload.budget
+      } : payload;
+      window.forge._updateBobcoins(metrics);
+    }
+  }
+
+  if (command === 'LOG') {
+    console.log('[Forge Host]', payload);
+  }
 });
 
-function callHost(type, payload) {
+function callHost(command, data) {
   const requestId = Math.random().toString(36).substring(7);
   return new Promise((resolve, reject) => {
     callbacks.set(requestId, { resolve, reject });
-    vscode.postMessage({ type, payload, requestId });
+    vscode.postMessage({ command, data, requestId });
   });
 }
 
 window.forge = {
   _bobStreamCallback: null,
+  _updateBobcoins: null,
   bob: {
     run: (args) => callHost('bob:run', args),
     abort: () => callHost('bob:abort'),

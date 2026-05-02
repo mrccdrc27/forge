@@ -8,6 +8,14 @@ import './App.css'
 export default function App() {
   const phase = useForgeStore((state) => state.phase)
   const setPhase = useForgeStore((state) => state.setPhase)
+  const updateBobcoins = useForgeStore((state) => state.updateBobcoins)
+
+  // Bind bridge to store
+  React.useEffect(() => {
+    if (window.forge) {
+      window.forge._updateBobcoins = updateBobcoins
+    }
+  }, [updateBobcoins])
   
   if (phase === 'idle') {
     return (
