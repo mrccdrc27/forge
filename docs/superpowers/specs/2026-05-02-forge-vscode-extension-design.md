@@ -1,57 +1,63 @@
 # Forge VS Code Extension Design
 
-> **Status:** Approved
+> **Status:** Approved (v2: Resilient/Modular)
 > **Date:** 2026-05-02
 > **Topic:** VS Code Extension Boilerplate for Forge
 
 ## 🎯 Goal
-Implement the "Universal Sidecar" philosophy as a native VS Code extension. This extension replaces the standalone Electron app to provide a docked, zero-latency "Ghost Overlay" UI and a robust tool bridge for AI orchestration via IBM Bob.
+Implement the "Universal Sidecar" philosophy as a native VS Code extension. This design prioritizes **flexibility and modifiability** to ensure that failing subsystems do not crash the extension and that components can be swapped or refactored with minimal friction.
 
-## 🏗️ Architecture
-The extension follows an **Integrated Orchestrator** pattern, mapping the core Forge blueprints into native VS Code subsystems.
+## 🏗️ Architecture: The Resilient Sidecar
+The extension uses a **Controller/Service** pattern. Subsystems are treated as independent services that are registered and managed by a central `ForgeController`.
 
-### 1. The Ghost Overlay (UI)
-- **Container:** VS Code Sidebar Webview (`WebviewViewProvider`).
-- **Tech:** React (Vite-based) loaded into the Webview.
-- **Communication:** `postMessage` bridge for two-way communication between the UI and the Extension Host.
-- **Styling:** Uses VS Code theme tokens (`--vscode-sideBar-background`, etc.) to match the IDE.
+### 1. Central Controller (`ForgeController.ts`)
+- **Responsibility:** Lifecycle management, event routing, and cross-service coordination.
+- **Resilience:** Each service is initialized inside a try-catch block. A failure in the `ContextEngine` won't prevent the `MCPHub` from loading.
 
-### 2. The MCP Hub (Tools)
-- **Purpose:** Expose local capabilities to IBM Bob.
-- **Initial Tools:**
-  - `forge.scaffold`: Project initialization templates.
-  - `forge.bulk_write`: Transactional multi-file writing.
-  - `forge.execute_task`: Delegation to local Granite/Watsonx workers.
+### 2. Service Layer (Pluggable Subsystems)
+Each subsystem implements a standard `IForgeService` interface.
 
-### 3. The Context Engine (Intelligence)
-- **Mechanism:** Native `vscode.workspace.createFileSystemWatcher`.
-- **Function:** Monitors file changes and provides workspace context to the AI during orchestration tasks.
+- **Ghost Overlay (UI Service):**
+  - **Flexibility:** The `ForgeSidebar` provider is decoupled from the UI framework. We can swap React for another framework or a different View type without changing the extension logic.
+  - **Fault Tolerance:** Uses a standard "Connection Status" protocol to handle Webview crashes or communication timeouts.
 
-### 4. The Resource Manager (Economics)
-- **Purpose:** Track Bobcoin usage ("Fuel Gauge").
-- **Integration:** Interfaces with Watsonx APIs to predict and monitor token costs.
+- **MCP Hub (Tool Service):**
+  - **Flexibility:** Tools are registered dynamically. Adding a new `forge.xxx` tool doesn't require modifying the core extension; just register a new tool handler.
+  - **Reliability:** Tool execution is sandboxed with timeouts and standard error reporting back to Bob.
+
+- **Context Engine (Intelligence Service):**
+  - **Flexibility:** Watcher rules and exclusion patterns are configuration-driven.
+  - **Performance:** Throttled events to prevent VS Code UI lag during high-frequency FS operations.
+
+- **Resource Manager (Economic Service):**
+  - **Flexibility:** API providers for Watsonx/Bobcoins are abstracted. If the backend API changes, only the `ResourceProvider` needs an update.
+
+### 3. Communication Bridge
+- Uses a **Command/Event Dispatcher**. The UI sends "Commands" to the Host; the Host broadcasts "Events" to the UI.
+- No direct coupling between React state and Extension state.
 
 ## 🛠️ Project Structure
 ```text
 forge/
 ├── src/
-│   ├── extension.ts          # Main entry & subsystem activation
+│   ├── extension.ts              # Entry point
+│   ├── ForgeController.ts        # Service Orchestrator
 │   ├── providers/
-│   │   └── ForgeSidebar.ts   # Sidebar Webview Provider
-│   ├── core/
-│   │   ├── mcp.ts            # MCP Tool logic
-│   │   ├── context.ts        # FS Watcher logic
-│   │   └── resource.ts       # Bobcoin tracking
-│   └── types/
-│       └── forge.d.ts        # Shared types
+│   │   └── ForgeSidebarProvider.ts # UI View logic
+│   ├── services/                 # Modular subsystems
+│   │   ├── BaseService.ts        # Abstract class with error handling
+│   │   ├── ContextEngine.ts      # FS Watching
+│   │   ├── MCPHub.ts             # Tool registration & execution
+│   │   └── ResourceManager.ts    # Bobcoin tracking
+│   └── interfaces/
+│       └── forge.ts              # Unified interfaces for services/tools
 ├── resources/
-│   └── forge-icon.svg        # Activity Bar icon
-├── package.json              # Extension manifest
-└── tsconfig.json             # TypeScript configuration
+└── package.json
 ```
 
 ## ✅ Success Criteria
-- Sidebar UI is accessible via the Forge icon in the Activity Bar.
-- The UI responds to theme changes natively.
-- Basic "Hello Forge" message can be sent from the UI to the Extension Host.
-- The FS Watcher logs file additions/deletions to the Output channel.
+- **Graceful Degradation:** Extension starts even if one service (e.g., Resource Manager) fails to initialize.
+- **Dynamic Tooling:** Successfully register a "test" tool at runtime and invoke it from the UI.
+- **Themed UI:** Webview inherits VS Code colors via standard CSS variables.
+- **Atomic Rollback:** `bulk_write` tool demonstrates basic "check-then-write" safety.
+

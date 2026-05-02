@@ -1,5 +1,6 @@
 # Wiki Log
 
+## [2026-05-02] reorganize | brain/core structural integrity update (Tiered: Intent, Blueprints, Tracking)
 ## [2026-05-02] ingest | IBM-Bob-Dev-Day-hackathon-guide.pdf
 ## [2026-05-02] update | IBM Bob Shell (Expanded with usage examples and core tools)
 ## [2026-05-02] update | IBM Bob Shell (Expanded via web docs)

@@ -1,5 +1,11 @@
 # Wiki Index
 
+## Core Project Logic
+- [[../core/intent/readme|Project Entry Point (README)]]
+- [[../core/intent/manifesto|Manifesto]]
+- [[../core/intent/scope|Capabilities & Scope]]
+- [[../core/blueprints/mode_definition|Forge Mode Definition]]
+
 ## Sources
 - [IBM-Bob-Dev-Day-hackathon-guide.pdf](../IBM-Bob-Dev-Day-hackathon-guide.pdf)
 - [Choosing a foundation model in watsonx.ai — Docs.md](../Clippings/Choosing%20a%20foundation%20model%20in%20watsonx.ai%20—%20Docs.md)
