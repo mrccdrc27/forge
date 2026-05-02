@@ -9,13 +9,18 @@ export default function App() {
   const phase = useForgeStore((state) => state.phase)
   const setPhase = useForgeStore((state) => state.setPhase)
   const updateBobcoins = useForgeStore((state) => state.updateBobcoins)
+  const spawnSubagent = useForgeStore((state) => state.spawnSubagent)
+  const updateSubagent = useForgeStore((state) => state.updateSubagent)
 
   // Bind bridge to store
   React.useEffect(() => {
     if (window.forge) {
       window.forge._updateBobcoins = updateBobcoins
+      window.forge._spawnSubagent = spawnSubagent
+      window.forge._updateSubagent = updateSubagent
+      window.forge._setPhase = setPhase
     }
-  }, [updateBobcoins])
+  }, [updateBobcoins, spawnSubagent, updateSubagent, setPhase])
   
   if (phase === 'idle') {
     return (

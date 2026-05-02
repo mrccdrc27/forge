@@ -40,10 +40,22 @@ export class ForgeController {
 
   setArbitrator(arbitrator: ResourceArbitrator) {
     this.arbitrator = arbitrator;
+    this.arbitrator.onEvent(event => {
+      this.sidebarProvider.postMessage({
+        command: event.type as any,
+        data: event.payload
+      });
+    });
   }
 
   setMCPHub(mcpHub: MCPHub) {
     this.mcpHub = mcpHub;
+    this.mcpHub.onEvent(event => {
+      this.sidebarProvider.postMessage({
+        command: event.type as any,
+        data: event.payload
+      });
+    });
   }
 
   setWriter(writer: AtomicWriter) {

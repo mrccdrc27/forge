@@ -42,6 +42,16 @@ window.addEventListener('message', (event) => {
     }
   }
 
+  if (command === 'SPAWN_SUBAGENT' && window.forge._spawnSubagent) {
+    // The payload usually expects { id, name, description } for spawn
+    window.forge._spawnSubagent(payload);
+  }
+
+  if (command === 'UPDATE_SUBAGENT' && window.forge._updateSubagent) {
+    // The payload usually expects { id, patch } for update
+    window.forge._updateSubagent(payload.id, payload.patch);
+  }
+
   if (command === 'LOG') {
     console.log('[Forge Host]', payload);
   }
@@ -58,6 +68,9 @@ function callHost(command, data) {
 window.forge = {
   _bobStreamCallback: null,
   _updateBobcoins: null,
+  _spawnSubagent: null,
+  _updateSubagent: null,
+  _setPhase: null,
   bob: {
     run: (args) => callHost('bob:run', args),
     abort: () => callHost('bob:abort'),
