@@ -1,11 +1,49 @@
 {
   "name": "forge",
+  "displayName": "Forge",
+  "description": "The Universal Sidecar for AI Orchestration",
   "version": "0.1.0",
-  "main": "core/index.js",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "forge-sidebar",
+          "title": "Forge",
+          "icon": "resources/forge-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "forge-sidebar": [
+        {
+          "type": "webview",
+          "id": "forge.sidebar",
+          "name": "Forge Control"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "forge.refresh",
+        "title": "Forge: Refresh UI",
+        "icon": "$(refresh)"
+      }
+    ]
+  },
   "scripts": {
-    "start": "electron .",
-    "build:renderer": "vite build",
-    "test:syntax": "node --check core/*.js"
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -13,8 +51,9 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.1",
-    "electron": "^29.1.1",
-    "vite": "^5.1.4"
+    "@types/vscode": "^1.85.0",
+    "@types/node": "18.x",
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0"
   }
 }
