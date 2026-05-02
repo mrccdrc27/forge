@@ -7,37 +7,50 @@ import { ResourceArbitrator } from './services/ResourceArbitrator';
 import { MCPHub } from './services/MCPHub';
 import { AtomicWriter } from './services/AtomicWriter';
 import { HistoryExporter } from './services/HistoryExporter';
+import { ConfigManager } from './services/ConfigManager';
 
 let controller: ForgeController;
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   controller = new ForgeController(context);
   controller.registerProviders(context);
   
   const output = controller.getOutputChannel();
 
-  // Register Services
-  controller.registerService(new ContextEngine('context-engine', output));
-  
-  const sentry = new ResourceSentry(output);
-  controller.registerService(sentry);
-  
-  const watsonx = new WatsonxClient(output);
-  controller.registerService(watsonx);
+  // Initialize ConfigManager first - all other services depend on it
+  const config = new ConfigManager(output);
+  await controller.registerService(config);
 
-  const arbitrator = new ResourceArbitrator(output, sentry, watsonx);
-  controller.registerService(arbitrator);
+  // Register Services with proper dependencies
+  await controller.registerService(new ContextEngine('context-engine', output));
+  
+  const sentry = new ResourceSentry(output, config);
+  await controller.registerService(sentry);
+  
+  const watsonx = new WatsonxClient(output, config);
+  await controller.registerService(watsonx);
+
+  const arbitrator = new ResourceArbitrator(output, sentry, watsonx, config);
+  await controller.registerService(arbitrator);
 
   const writer = new AtomicWriter('atomic-writer', output);
-  controller.registerService(writer);
+  await controller.registerService(writer);
 
   const historyExporter = new HistoryExporter('history-exporter', output);
-  controller.registerService(historyExporter);
+  await controller.registerService(historyExporter);
 
+  // Initialize MCPHub but don't start server yet
   const mcpHub = new MCPHub('mcp-hub', output);
+  await controller.registerService(mcpHub);
+  
+  // Set all dependencies BEFORE starting the server
   mcpHub.setWriter(writer);
   mcpHub.setSentry(sentry);
-  controller.registerService(mcpHub);
+  mcpHub.setArbitrator(arbitrator);
+  mcpHub.setConfig(config);
+  
+  // Now start the MCP server with all dependencies ready
+  await mcpHub.startServerWhenReady();
 
   // Set references in controller
   controller.setSentry(sentry);
@@ -48,6 +61,8 @@ export function activate(context: vscode.ExtensionContext) {
   controller.setMCPHub(mcpHub);
 
   context.subscriptions.push(controller);
+  
+  output.appendLine('✅ Forge extension activated successfully!');
 }
 
 export function deactivate() {

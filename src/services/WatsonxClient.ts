@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { BaseService } from './BaseService';
+import { ConfigManager } from './ConfigManager';
 
 export interface WatsonxResponse {
   content: string;
@@ -19,7 +20,7 @@ export class WatsonxClient extends BaseService {
   private accessToken?: string;
   private tokenExpiry?: number;
 
-  constructor(output: vscode.OutputChannel) {
+  constructor(output: vscode.OutputChannel, private config: ConfigManager) {
     super('WatsonxClient', output);
   }
 
@@ -51,7 +52,9 @@ export class WatsonxClient extends BaseService {
       }
     }
 
-    if (!this.baseUrl) this.baseUrl = 'https://us-south.ml.cloud.ibm.com';
+    if (!this.baseUrl) {
+      this.baseUrl = this.config.getConfig().watsonx.baseUrl;
+    }
   }
 
   private async getAccessToken(): Promise<string> {

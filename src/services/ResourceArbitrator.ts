@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { BaseService } from './BaseService';
 import { ResourceSentry } from './ResourceSentry';
 import { WatsonxClient } from './WatsonxClient';
+import { ConfigManager } from './ConfigManager';
 
 export interface RouteRequest {
   task: string;
@@ -14,7 +15,8 @@ export class ResourceArbitrator extends BaseService {
   constructor(
     output: vscode.OutputChannel,
     private sentry: ResourceSentry,
-    private watsonx: WatsonxClient
+    private watsonx: WatsonxClient,
+    private config: ConfigManager
   ) {
     super('ResourceArbitrator', output);
   }
@@ -34,6 +36,7 @@ export class ResourceArbitrator extends BaseService {
    */
   private route(task: string): string {
     const t = task.toLowerCase();
+    const models = this.config.getConfig().watsonx.models;
     
     // Reasoning Keywords (Bob / Llama)
     const reasoningKeywords = ['plan', 'architecture', 'design', 'review', 'compare', 'refactor strategy'];
@@ -42,15 +45,15 @@ export class ResourceArbitrator extends BaseService {
     const executionKeywords = ['implement', 'write code', 'fix bug', 'add test', 'document', 'boiler-plate', 'expansion'];
 
     if (reasoningKeywords.some(kw => t.includes(kw))) {
-      return 'meta-llama/llama-3-3-70b-instruct';
+      return models.reasoning;
     }
 
     if (executionKeywords.some(kw => t.includes(kw))) {
-      return 'ibm/granite-3-8b-instruct';
+      return models.execution;
     }
 
     // Default to Llama for unknown reasoning-heavy starts, but usually Granite for everything else
-    return t.length > 200 ? 'meta-llama/llama-3-3-70b-instruct' : 'ibm/granite-3-8b-instruct';
+    return t.length > 200 ? models.reasoning : models.execution;
   }
 
   async executeTask(request: RouteRequest): Promise<any> {

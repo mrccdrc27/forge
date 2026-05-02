@@ -9,6 +9,7 @@ import { BaseService } from "./BaseService";
 import { AtomicWriter } from "./AtomicWriter";
 import { ResourceSentry } from "./ResourceSentry";
 import { ResourceArbitrator } from "./ResourceArbitrator";
+import { ConfigManager } from "./ConfigManager";
 import express from "express";
 
 export class MCPHub extends BaseService {
@@ -18,6 +19,8 @@ export class MCPHub extends BaseService {
   private writer?: AtomicWriter;
   private sentry?: ResourceSentry;
   private arbitrator?: ResourceArbitrator;
+  private config?: ConfigManager;
+  private serverStarted: boolean = false;
 
   private _onEvent = new vscode.EventEmitter<{ type: string; payload: any }>();
   public readonly onEvent = this._onEvent.event;
@@ -36,9 +39,35 @@ export class MCPHub extends BaseService {
     );
 
     this.setupHandlers();
-    await this.startServer();
+    // Don't start server yet - wait for all dependencies to be set
     
-    this.log("MCP Hub Initialized and listening on SSE.");
+    this.log("MCP Hub Initialized (server will start when ready).");
+  }
+
+  /**
+   * Start the MCP server after all dependencies are injected
+   */
+  async startServerWhenReady() {
+    if (this.serverStarted) {
+      this.log("Server already started, skipping.");
+      return;
+    }
+
+    if (!this.writer) {
+      throw new Error("Cannot start MCP server: AtomicWriter not set");
+    }
+
+    if (!this.sentry) {
+      throw new Error("Cannot start MCP server: ResourceSentry not set");
+    }
+
+    if (!this.config) {
+      throw new Error("Cannot start MCP server: ConfigManager not set");
+    }
+
+    await this.startServer();
+    this.serverStarted = true;
+    this.log("MCP Hub server started and listening on SSE.");
   }
 
   setWriter(writer: AtomicWriter) {
@@ -51,6 +80,10 @@ export class MCPHub extends BaseService {
 
   setArbitrator(arbitrator: ResourceArbitrator) {
     this.arbitrator = arbitrator;
+  }
+
+  setConfig(config: ConfigManager) {
+    this.config = config;
   }
 
   private setupHandlers() {
@@ -113,7 +146,8 @@ export class MCPHub extends BaseService {
       const { name, arguments: args } = request.params;
 
       // Budget Gating
-      if (this.sentry && !this.sentry.hasBudget(500)) { // 500 tokens buffer for tool overhead
+      const bufferTokens = this.config?.getConfig().budget.toolOverheadBuffer || 500;
+      if (this.sentry && !this.sentry.hasBudget(bufferTokens)) {
         throw new Error('Gated: Insufficient Bobcoin budget for tool execution.');
       }
 
@@ -149,7 +183,16 @@ export class MCPHub extends BaseService {
           if (!this.writer) throw new Error("AtomicWriter not initialized");
           const { type, name: projectName } = args as any;
           const scaffoldFiles: { [key: string]: string } = {};
-          const root = vscode.workspace.workspaceFolders?.[0].uri.fsPath || ".";
+          
+          // Validate workspace
+          const workspaceConfig = this.config?.getConfig().workspace;
+          if (workspaceConfig?.requireWorkspaceFolder && !vscode.workspace.workspaceFolders?.[0]) {
+            throw new Error("No workspace folder open. Please open a folder first.");
+          }
+          
+          const root = vscode.workspace.workspaceFolders?.[0].uri.fsPath ||
+                       workspaceConfig?.defaultScaffoldPath ||
+                       ".";
 
           const taskId = Math.random().toString(36).substring(7);
           this._onEvent.fire({ type: 'SPAWN_SUBAGENT', payload: { id: taskId, name: 'Forge Scaffold', description: `Scaffolding ${type} project: ${projectName}` } });
@@ -190,7 +233,9 @@ export class MCPHub extends BaseService {
 
   private async startServer() {
     this.app = express();
-    const port = 3000;
+    const serverConfig = this.config?.getConfig().server;
+    const port = serverConfig?.port || 3000;
+    const host = serverConfig?.host || 'localhost';
 
     this.app.get("/sse", async (req: express.Request, res: express.Response) => {
       if (this.transport) {
@@ -225,8 +270,8 @@ export class MCPHub extends BaseService {
       }
     });
 
-    this.app.listen(port, () => {
-      this.log(`MCP SSE Server listening on http://localhost:${port}/sse`);
+    this.app.listen(port, host, () => {
+      this.log(`MCP SSE Server listening on http://${host}:${port}/sse`);
     });
   }
 

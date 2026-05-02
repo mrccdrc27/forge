@@ -1,30 +1,37 @@
 import * as vscode from 'vscode';
 import { BaseService } from './BaseService';
 import { ISentry, ResourceSentryData, TokenUsage, BobcoinCost } from '../interfaces/sentry';
+import { ConfigManager } from './ConfigManager';
 
 export class ResourceSentry extends BaseService implements ISentry {
   private totalInputTokens = 0;
   private totalOutputTokens = 0;
   private actualCost = 0;
   private savedCost = 0;
-  private readonly budget = 40; // 40 Bobcoins
+  private budget: number;
+  private pricing: Record<string, number>;
 
   private _onUpdate = new vscode.EventEmitter<ResourceSentryData>();
   public readonly onUpdate = this._onUpdate.event;
 
-  // Cost per 1k tokens in Bobcoins
-  private readonly pricing: Record<string, number> = {
-    'meta-llama/llama-3-3-70b-instruct': 1.0,  // Reasoning model (Expensive)
-    'ibm/granite-3-8b-instruct': 0.1,          // Execution model (Cheap)
-    'default': 0.5
-  };
-
-  constructor(output: vscode.OutputChannel) {
+  constructor(output: vscode.OutputChannel, private config: ConfigManager) {
     super('ResourceSentry', output);
+    
+    const budgetConfig = config.getConfig().budget;
+    const models = config.getConfig().watsonx.models;
+    
+    this.budget = budgetConfig.maxBobcoins;
+    
+    // Cost per 1k tokens in Bobcoins
+    this.pricing = {
+      [models.reasoning]: budgetConfig.costs.llama,
+      [models.execution]: budgetConfig.costs.granite,
+      'default': 0.5
+    };
   }
 
   async init(): Promise<void> {
-    this.log('Sentry initialized with 40 Bobcoin budget.');
+    this.log(`Sentry initialized with ${this.budget} Bobcoin budget.`);
   }
 
   dispose(): void {
@@ -42,7 +49,8 @@ export class ResourceSentry extends BaseService implements ISentry {
     this.actualCost += cost;
 
     // Calculate "Saved" cost (what it would have cost if we used Llama for everything)
-    const baselineCost = (tokens / 1000) * this.pricing['meta-llama/llama-3-3-70b-instruct'];
+    const models = this.config.getConfig().watsonx.models;
+    const baselineCost = (tokens / 1000) * this.pricing[models.reasoning];
     if (model.includes('granite')) {
       this.savedCost += (baselineCost - cost);
     }
@@ -58,13 +66,15 @@ export class ResourceSentry extends BaseService implements ISentry {
   }
 
   predictCost(estimatedTokens: number, modelType: 'reasoning' | 'execution'): number {
-    const model = modelType === 'reasoning' ? 'meta-llama/llama-3-3-70b-instruct' : 'ibm/granite-3-8b-instruct';
+    const models = this.config.getConfig().watsonx.models;
+    const model = modelType === 'reasoning' ? models.reasoning : models.execution;
     return (estimatedTokens / 1000) * this.pricing[model];
   }
 
   hasBudget(estimatedTokens: number): boolean {
     // For gating, assume worst-case (reasoning) if unsure
-    const estimatedCost = (estimatedTokens / 1000) * this.pricing['meta-llama/llama-3-3-70b-instruct'];
+    const models = this.config.getConfig().watsonx.models;
+    const estimatedCost = (estimatedTokens / 1000) * this.pricing[models.reasoning];
     return (this.actualCost + estimatedCost) <= this.budget;
   }
 

@@ -1,0 +1,25 @@
+{
+  "server": {
+    "port": 3000,
+    "host": "localhost"
+  },
+  "watsonx": {
+    "baseUrl": "https://us-south.ml.cloud.ibm.com",
+    "models": {
+      "reasoning": "meta-llama/llama-3-3-70b-instruct",
+      "execution": "ibm/granite-3-8b-instruct"
+    }
+  },
+  "budget": {
+    "maxBobcoins": 40,
+    "toolOverheadBuffer": 500,
+    "costs": {
+      "llama": 1.0,
+      "granite": 0.1
+    }
+  },
+  "workspace": {
+    "requireWorkspaceFolder": true,
+    "defaultScaffoldPath": "."
+  }
+}
