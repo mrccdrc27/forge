@@ -12,6 +12,7 @@
 - [[The Hackathon Expectation]]
 - [[IBM Bob IDE]]
 - [[IBM Bob Shell]]
+- [[.bobignore]]
 - [[IBM watsonx Orchestrate]]
 - [[IBM watsonx.ai]]
 - [[Hackathon Use Cases]]
@@ -26,3 +27,10 @@
 - [[Source: Supported foundation models]]
 - [[Source: Prompt Lab Docs]]
 - [[Source: Tokens and Tokenization Docs]]
+
+## Planning & Brainstorming
+- [[../brainstorm/index|Brainstorming Session Index]]
+- [[../brainstorm/proposal_1_sidecar|Proposal 1: Forge Sidecar]]
+- [[../brainstorm/proposal_1_ultimate_play|Proposal 1: The MCP Ghost (Ultimate Play)]]
+- [[../brainstorm/consultant_report|Hackathon Risk Audit]]
+

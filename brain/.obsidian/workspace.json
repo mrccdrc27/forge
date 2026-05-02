@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "wiki/IBM Bob Shell.md",
+                "file": "core/ai_features/delegation_model.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "IBM Bob Shell"
+              "title": "delegation_model"
             }
           }
         ]
@@ -78,8 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200,
-    "collapsed": true
+    "width": 221.5
   },
   "right": {
     "id": "f3be6bea97634b53",
@@ -95,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "wiki/IBM Bob Shell.md",
+                "file": "core/ai_features/delegation_model.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -105,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for IBM Bob Shell"
+              "title": "Backlinks for delegation_model"
             }
           },
           {
@@ -114,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "wiki/IBM Bob Shell.md",
+                "file": "core/ai_features/delegation_model.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from IBM Bob Shell"
+              "title": "Outgoing links from delegation_model"
             }
           },
           {
@@ -157,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "wiki/IBM Bob Shell.md",
+                "file": "core/ai_features/delegation_model.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of IBM Bob Shell"
+              "title": "Outline of delegation_model"
             }
           }
         ]
@@ -186,35 +185,41 @@
   },
   "active": "143965710e5c3d86",
   "lastOpenFiles": [
-    "meta/index.md",
+    "core/ai_features/capabilities.md",
+    "core/ai_features/delegation_model.md",
+    "core/ai_features/resource_arbitrage.md",
+    "core/backlog/milestones.md",
+    "core/ai_features/scopes.md",
+    "core/ai_features.md",
+    "core/ai_features",
+    "core/issues/task_complexity_routing.md",
+    "core/issues/local_vs_cloud_execution.md",
+    "core/issues/electron_snapping_limitation.md",
+    "core/issues/chokidar_performance.md",
+    "core/issues/atomic_bulk_write_rollback.md",
+    "core/subsystems/mcp_hub.md",
+    "core/subsystems/overlay.md",
+    "core/subsystems/resource_manager.md",
+    "core/subsystems/context_engine.md",
+    "core/issues/vscode_extension_pivot.md",
+    "core/issues/index.md",
+    "core/capabilities_and_scope.md",
+    "core/issues",
+    "core/forge_mode_definition.md",
+    "core/use_case_scaffold_efficiency.md",
+    "core/use_case_dark_mode.md",
+    "core/README.md",
+    "core/manifesto.md",
+    "brainstorm/index.md",
+    "brainstorm/proposal_1_ultimate_play.md",
+    "core/backlog",
+    "core/subsystems",
+    "core",
+    "brainstorm/proposal_1_v1_mcp.md",
+    "brainstorm",
     "IBM-Bob-Dev-Day-hackathon-guide.pdf",
-    "wiki/Foundation Models.md",
-    "wiki/IBM watsonx.ai.md",
-    "wiki/Prompt Lab.md",
-    "Clippings/Choosing a foundation model in watsonx.ai — Docs.md",
-    "Clippings/Tokens and tokenization — Docs 1.md",
-    "wiki/Model Gateway.md",
-    "wiki/Tokens.md",
-    "wiki/Retrieval-Augmented Generation (RAG).md",
-    "wiki/Source-Tokens-and-Tokenization.md",
-    "wiki/Source-Prompt-Lab-Docs.md",
-    "wiki/Source-Supported-foundation-models.md",
-    "wiki/Source-Choosing-a-foundation-model.md",
-    "Clippings/IBM watsonx as a Service 1.md",
-    "Clippings/Prompt Lab — Docs 1.md",
-    "Clippings/Prompt Lab — Docs.md",
-    "Clippings/Supported foundation models in watsonx.ai — Docs.md",
-    "Clippings/IBM watsonx Developer Hub 4.md",
-    "Clippings/IBM watsonx Developer Hub 3.md",
-    "Clippings/IBM watsonx Developer Hub 2.md",
-    "Clippings/IBM watsonx Developer Hub 1.md",
-    "Clippings/IBM watsonx Developer Hub.md",
-    "Clippings/IBM watsonx as a Service.md",
-    "Clippings/Tokens and tokenization — Docs.md",
-    "Clippings/Untitled.md",
     "Clippings/watsonx-ai-platform-efficient-usage-tips.pdf",
     "Clippings",
-    "meta",
-    "wiki"
+    "meta"
   ]
 }

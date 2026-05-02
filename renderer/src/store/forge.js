@@ -59,10 +59,18 @@ export const useForgeStore = create((set, get) => ({
   error: null,
   setError: (error) => set({ error, phase: 'error' }),
 
+  // ─── Chat History ───────────────────────────────────────────────────────
+  chatHistory: [], // [{ role: 'user' | 'bob', content: string }]
+  addChatMessage: (role, content) => set((s) => ({
+    chatHistory: [...s.chatHistory, { role, content }]
+  })),
+  clearChatHistory: () => set({ chatHistory: [] }),
+
   // ─── Reset ───────────────────────────────────────────────────────────────
   reset: () => set({
     phase: 'idle',
     userPrompt: '',
+    chatHistory: [],
     bobStream: '',
     bobThinking: false,
     masterPlan: null,

@@ -7,18 +7,66 @@ import { useForgeStore } from '../store/forge'
 export function useForgeOrchestrator() {
   const store = useForgeStore()
 
+  // ─── Step 0: Interview / Chat ───────────────────────────────────────────
+  async function chat(userMessage) {
+    store.addChatMessage('user', userMessage)
+    store.setBobThinking(true)
+    store.clearBobStream()
+
+    // Build context from history
+    const history = store.chatHistory
+      .map(m => `${m.role === 'user' ? 'User' : 'Bob'}: ${m.content}`)
+      .join('\n')
+
+    const systemPrompt = `
+You are a senior product consultant for "Forge", an AI orchestration platform.
+Help the user refine their software idea. 
+Ask clarifying questions about the tech stack, features, or scope.
+Be concise. One question at a time.
+When you have enough info to build a plan, end your message with: [READY]
+`.trim()
+
+    window.forge.bob.onStream((chunk) => {
+      store.appendBobStream(chunk)
+    })
+
+    const result = await window.forge.bob.run({
+      prompt: userMessage,
+      context: `${systemPrompt}\n\nHistory:\n${history}`
+    })
+
+    window.forge.bob.offStream()
+    store.setBobThinking(false)
+
+    if (result.success) {
+      store.addChatMessage('bob', result.output)
+      
+      // Auto-transition to planning if Bob says [READY]
+      if (result.output.includes('[READY]')) {
+        return 'ready'
+      }
+    } else {
+      store.setError(`Bob failed during chat: ${result.error}`)
+    }
+  }
+
   // ─── Step 1: Bob interviews + produces master plan ──────────────────────
   async function runPlanning(projectName, userPrompt) {
     store.setPhase('planning')
     store.setBobThinking(true)
     store.clearBobStream()
 
+    const history = store.chatHistory
+      .map(m => `${m.role === 'user' ? 'User' : 'Bob'}: ${m.content}`)
+      .join('\n')
+
     const planningPrompt = `
-You are a senior software architect. The user wants to build the following:
+You are a senior software architect. Based on the following conversation:
 
-"${userPrompt}"
+${history}
 
-Your job is to produce a structured master plan. Be concise and time-sensitive.
+Produce a structured master plan for the project: "${projectName}".
+Be concise and time-sensitive.
 Do NOT over-engineer. Output ONLY valid JSON in this exact shape:
 
 {
@@ -192,5 +240,5 @@ Verdict is "pass" if all critical tasks succeeded. "retry" if any failed tasks a
     store.setPhase('done')
   }
 
-  return { start }
+  return { chat, start }
 }

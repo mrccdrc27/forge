@@ -61,9 +61,15 @@ ipcMain.handle('bob:run', async (event, { prompt, context }) => {
       ? `${context}\n\n${prompt}`
       : prompt
 
+    // ─── Authentication Logic ────────────────────────────────────────────────
+    const { BOBSHELL_API_KEY } = process.env
+    const authString = BOBSHELL_API_KEY ? '--auth-method api-key ' : ''
+
+    // Escape quotes in the prompt for Windows command line
+    const escapedPrompt = fullPrompt.replace(/"/g, '\\"')
+
     // bob shell non-interactive: `bob -p "<prompt>"`
-    // Replace 'bob' with the actual Bob Shell binary path if needed
-    bobProcess = spawn('bob', ['-p', fullPrompt], {
+    bobProcess = spawn(`bob ${authString}-p "${escapedPrompt}"`, {
       shell: true,
       env: { ...process.env }
     })
