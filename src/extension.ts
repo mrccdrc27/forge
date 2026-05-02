@@ -5,6 +5,7 @@ let controller: ForgeController;
 
 export function activate(context: vscode.ExtensionContext) {
   controller = new ForgeController();
+  controller.registerProviders(context);
   context.subscriptions.push(controller);
 }
 
