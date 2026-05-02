@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "core/tasks/mcp_extension_engineer.md",
+                "file": "core/tasks/resource_economist.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "mcp_extension_engineer"
+              "title": "resource_economist"
             }
           }
         ]
@@ -185,6 +185,11 @@
   },
   "active": "143965710e5c3d86",
   "lastOpenFiles": [
+    "core/build/FINAL_ACCOMPLISHMENT_OVERLAY.md",
+    "core/tasks/overlay_architect.md",
+    "core/tasks/mcp_extension_engineer.md",
+    "core/tasks/resource_economist.md",
+    "core/build/forge-full-integration-f4d2.md",
     "core/build/accomplishment-report-final.md",
     "core/build/final-resource-arbitrage-7d9a.md",
     "core/build/arbitrage-logic-and-watsonx-live-f1a2.md",
@@ -194,9 +199,6 @@
     "core/build/create-reporter-8f2c.md",
     "core/build/plan.md",
     "core/build/mcp-bob-integration-e9a2.md",
-    "core/tasks/mcp_extension_engineer.md",
-    "core/tasks/resource_economist.md",
-    "core/tasks/overlay_architect.md",
     "core/tasks",
     "core/index.md",
     "core/build",
@@ -212,8 +214,6 @@
     "core/blueprints/resource_manager.md",
     "core/blueprints/resource_arbitrage.md",
     "core/blueprints/overlay.md",
-    "core/blueprints/mcp_hub.md",
-    "core/blueprints/context_engine.md",
     "core/archive",
     "core/tracking",
     "core/blueprints",
