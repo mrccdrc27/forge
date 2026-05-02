@@ -1,14 +1,55 @@
 import * as vscode from 'vscode';
 import { IForgeService } from './interfaces/forge';
 import { ForgeSidebarProvider } from './providers/ForgeSidebarProvider';
+import { ResourceSentry } from './services/ResourceSentry';
+import { WatsonxClient } from './services/WatsonxClient';
+import { ResourceArbitrator } from './services/ResourceArbitrator';
+import { MCPHub } from './services/MCPHub';
+import { AtomicWriter } from './services/AtomicWriter';
 
 export class ForgeController {
   private services: Map<string, IForgeService> = new Map();
   private output = vscode.window.createOutputChannel("Forge");
   private sidebarProvider: ForgeSidebarProvider;
+  private sentry?: ResourceSentry;
+  private watsonx?: WatsonxClient;
+  private arbitrator?: ResourceArbitrator;
+  private mcpHub?: MCPHub;
+  private writer?: AtomicWriter;
 
-  constructor() {
-    this.sidebarProvider = new ForgeSidebarProvider();
+  constructor(context: vscode.ExtensionContext) {
+    this.sidebarProvider = new ForgeSidebarProvider(context.extensionUri);
+  }
+
+  setSentry(sentry: ResourceSentry) {
+    this.sentry = sentry;
+    this.sentry.onUpdate(data => {
+      this.sidebarProvider.updateState(data);
+    });
+  }
+
+  setWatsonx(watsonx: WatsonxClient) {
+    this.watsonx = watsonx;
+  }
+
+  setArbitrator(arbitrator: ResourceArbitrator) {
+    this.arbitrator = arbitrator;
+  }
+
+  setMCPHub(mcpHub: MCPHub) {
+    this.mcpHub = mcpHub;
+  }
+
+  setWriter(writer: AtomicWriter) {
+    this.writer = writer;
+  }
+
+  getSentry() {
+    return this.sentry;
+  }
+
+  getWriter() {
+    return this.writer;
   }
 
   async registerService(service: IForgeService) {

@@ -2,6 +2,7 @@ import React from 'react'
 import { BuildView } from './pages/BuildView'
 import { ChatView } from './pages/ChatView'
 import { useForgeStore } from './store/forge'
+import { BobcoinFuelGauge } from './components/BobcoinFuelGauge'
 import './App.css'
 
 export default function App() {
@@ -11,11 +12,14 @@ export default function App() {
   if (phase === 'idle') {
     return (
       <div className="page" style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <h1 style={{ color: '#00f2fe', fontSize: '4rem', margin: 0 }}>⬡ Forge</h1>
-        <p style={{ color: '#888', marginBottom: '30px' }}>Orchestrating autonomous builds with Bob Shell & Watsonx</p>
+        <h1 style={{ color: '#00f2fe', fontSize: '3rem', margin: 0 }}>⬡ Forge</h1>
+        <p style={{ color: '#888', marginBottom: '20px' }}>Universal AI Orchestration</p>
+        
+        <BobcoinFuelGauge />
+
         <button 
           onClick={() => setPhase('interview')}
-          style={{ padding: '15px 40px', fontSize: '1.2rem' }}
+          style={{ padding: '12px 30px', fontSize: '1rem', marginTop: '20px' }}
         >
           Begin Discovery
         </button>

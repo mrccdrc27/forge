@@ -1,15 +1,86 @@
 :root {
-  --bg-dark: #0a0a0a;
-  --accent-cyan: #00f2fe;
-  --text-dim: #888;
-  --panel-bg: #141414;
+  --bg-dark: var(--vscode-sideBar-background, #0a0a0a);
+  --accent-cyan: var(--vscode-button-background, #00f2fe);
+  --text-dim: var(--vscode-descriptionForeground, #888);
+  --panel-bg: var(--vscode-editor-background, #141414);
+  --text-main: var(--vscode-foreground, #ffffff);
 }
 
 body {
   background-color: var(--bg-dark);
-  color: white;
+  color: var(--text-main);
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--vscode-font-family, 'Inter', sans-serif);
+}
+
+/* Fuel Gauge */
+.fuel-gauge {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 15px;
+  width: 100%;
+  max-width: 280px;
+  box-sizing: border-box;
+}
+
+.gauge-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.gauge-track {
+  height: 8px;
+  background: #000;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.gauge-fill {
+  height: 100%;
+  background: #00f2fe;
+  transition: width 0.5s ease-out;
+}
+
+.gauge-fill.warning {
+  background: #f1c40f;
+}
+
+.gauge-fill.critical {
+  background: #e74c3c;
+}
+
+.gauge-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+}
+
+.saved-label {
+  color: var(--text-dim);
+}
+
+.saved-value {
+  color: #00ff88;
+  font-weight: bold;
+}
+
+.gauge-alert {
+  margin-top: 10px;
+  font-size: 0.7rem;
+  color: #f1c40f;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.gauge-alert.critical {
+  color: #e74c3c;
+  font-weight: bold;
 }
 
 .page {

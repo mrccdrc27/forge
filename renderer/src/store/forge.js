@@ -55,6 +55,14 @@ export const useForgeStore = create((set, get) => ({
   iteration: 0,
   incrementIteration: () => set((s) => ({ iteration: s.iteration + 1 })),
 
+  // ─── Bobcoins ───────────────────────────────────────────────────────────
+  bobcoins: {
+    total: 24,
+    saved: 12,
+    limit: 40
+  },
+  updateBobcoins: (patch) => set((s) => ({ bobcoins: { ...s.bobcoins, ...patch } })),
+
   // ─── Error ───────────────────────────────────────────────────────────────
   error: null,
   setError: (error) => set({ error, phase: 'error' }),
