@@ -274,13 +274,25 @@ export class MCPHub extends BaseService {
         throw new Error('Gated: Insufficient Bobcoin budget for tool execution.');
       }
 
-      this._onEvent.fire({ 
-        type: 'SPAWN_SUBAGENT', 
-        payload: { 
-          id: taskId, 
-          name: name.replace('forge.', '').toUpperCase(), 
-          description: inputStr 
-        } 
+      // Each MCP tool call gets its own chat instance
+      // This ensures each request is clearly separated in the sidebar
+      // Bob IDE can override this by providing explicit chatInstanceId in the future
+      const chatInstanceId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      this._onEvent.fire({
+        type: 'NEW_CHAT_INSTANCE',
+        payload: { chatInstanceId }
+      });
+
+      // Spawn subagent with unique chat instance ID
+      this._onEvent.fire({
+        type: 'SPAWN_SUBAGENT',
+        payload: {
+          id: taskId,
+          name: name.replace('forge.', '').toUpperCase(),
+          description: inputStr,
+          chatInstanceId
+        }
       });
       this._onEvent.fire({ type: 'UPDATE_SUBAGENT', payload: { id: taskId, patch: { status: 'running' } } });
 

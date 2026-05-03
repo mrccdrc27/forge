@@ -24,4 +24,12 @@ export enum ForgeCommandType {
 export interface WebviewMessage {
   command: ForgeCommandType | string;
   data?: any;
+  chatInstanceId?: string;  // Optional chat instance identifier
+}
+
+export interface ChatInstance {
+  id: string;
+  label: string;
+  timestamp: number;
+  subagents: any[];
 }

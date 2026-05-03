@@ -9,6 +9,7 @@ export default function App() {
   const spawnSubagent = useForgeStore((state) => state.spawnSubagent)
   const updateSubagent = useForgeStore((state) => state.updateSubagent)
   const setPhase = useForgeStore((state) => state.setPhase)
+  const ensureChatInstance = useForgeStore((state) => state.ensureChatInstance)
 
   // Bind bridge to store
   React.useEffect(() => {
@@ -17,8 +18,9 @@ export default function App() {
       window.forge._spawnSubagent = spawnSubagent
       window.forge._updateSubagent = updateSubagent
       window.forge._setPhase = setPhase
+      window.forge._ensureChatInstance = ensureChatInstance
     }
-  }, [updateBobcoins, spawnSubagent, updateSubagent, setPhase])
+  }, [updateBobcoins, spawnSubagent, updateSubagent, setPhase, ensureChatInstance])
   
   return (
     <div className="page" style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>

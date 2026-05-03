@@ -48,13 +48,19 @@ window.addEventListener('message', (event) => {
   }
 
   if (command === 'SPAWN_SUBAGENT' && window.forge._spawnSubagent) {
-    // The payload usually expects { id, name, description } for spawn
+    // The payload expects { id, name, description, chatInstanceId? } for spawn
+    // chatInstanceId is used to group requests by chat session
     window.forge._spawnSubagent(payload);
   }
 
   if (command === 'UPDATE_SUBAGENT' && window.forge._updateSubagent) {
-    // The payload usually expects { id, patch } for update
+    // The payload expects { id, patch } for update
     window.forge._updateSubagent(payload.id, payload.patch);
+  }
+  
+  if (command === 'NEW_CHAT_INSTANCE' && window.forge._ensureChatInstance) {
+    // Create a new chat instance when Bob starts a new conversation
+    window.forge._ensureChatInstance(payload?.chatInstanceId);
   }
 
   if (command === 'LOG') {

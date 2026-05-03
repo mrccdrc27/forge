@@ -54,23 +54,96 @@ export const useForgeStore = create(
       masterPlan: null,     // { summary, stack, tasks: [...], estimate }
       setMasterPlan: (masterPlan) => set({ masterPlan }),
 
+      // ─── Chat Instances ──────────────────────────────────────────────────────
+      // Group subagents by chat instance for better organization
+      chatInstances: [],    // [{ id, label, timestamp, subagents: [...] }]
+      currentChatInstanceId: null,
+      
+      // Create or get current chat instance
+      ensureChatInstance: (chatInstanceId) => set((s) => {
+        // If no chatInstanceId provided, create a new one
+        const instanceId = chatInstanceId || `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Check if instance already exists
+        const existingInstance = s.chatInstances.find(ci => ci.id === instanceId);
+        if (existingInstance) {
+          return { currentChatInstanceId: instanceId };
+        }
+        
+        // Create new instance
+        const newInstance = {
+          id: instanceId,
+          label: `Chat #${s.chatInstances.length + 1}`,
+          timestamp: Date.now(),
+          subagents: []
+        };
+        
+        return {
+          chatInstances: [...s.chatInstances, newInstance],
+          currentChatInstanceId: instanceId
+        };
+      }),
+      
       // ─── Subagents ───────────────────────────────────────────────────────────
       // Each task from masterPlan becomes a subagent
-      subagents: [],        // [{ id, name, description, status, output, error }]
-      spawnSubagent: (task) => set((s) => ({
-        subagents: [...s.subagents, {
+      subagents: [],        // [{ id, name, description, status, output, error, chatInstanceId }]
+      spawnSubagent: (task) => set((s) => {
+        const chatInstanceId = task.chatInstanceId || s.currentChatInstanceId || `chat-${Date.now()}`;
+        
+        // Ensure chat instance exists
+        let instances = s.chatInstances;
+        let existingInstance = instances.find(ci => ci.id === chatInstanceId);
+        
+        if (!existingInstance) {
+          existingInstance = {
+            id: chatInstanceId,
+            label: `Chat #${instances.length + 1}`,
+            timestamp: Date.now(),
+            subagents: []
+          };
+          instances = [...instances, existingInstance];
+        }
+        
+        const newSubagent = {
           id: task.id,
           name: task.name,
           description: task.description,
           status: 'queued', // queued | running | done | failed
           output: null,
-          error: null
-        }]
-      })),
-      updateSubagent: (id, patch) => set((s) => ({
-        subagents: s.subagents.map(a => a.id === id ? { ...a, ...patch } : a)
-      })),
-      clearSubagents: () => set({ subagents: [] }),
+          error: null,
+          chatInstanceId
+        };
+        
+        // Update chat instance with new subagent
+        instances = instances.map(ci =>
+          ci.id === chatInstanceId
+            ? { ...ci, subagents: [...ci.subagents, newSubagent] }
+            : ci
+        );
+        
+        return {
+          subagents: [...s.subagents, newSubagent],
+          chatInstances: instances,
+          currentChatInstanceId: chatInstanceId
+        };
+      }),
+      
+      updateSubagent: (id, patch) => set((s) => {
+        const updatedSubagents = s.subagents.map(a => a.id === id ? { ...a, ...patch } : a);
+        
+        // Also update in chat instances
+        const updatedInstances = s.chatInstances.map(ci => ({
+          ...ci,
+          subagents: ci.subagents.map(a => a.id === id ? { ...a, ...patch } : a)
+        }));
+        
+        return {
+          subagents: updatedSubagents,
+          chatInstances: updatedInstances
+        };
+      }),
+      
+      clearSubagents: () => set({ subagents: [], chatInstances: [], currentChatInstanceId: null }),
 
       // ─── Verification ────────────────────────────────────────────────────────
       verificationReport: null,   // { passed: [], failed: [], verdict: 'pass'|'retry' }
@@ -106,6 +179,8 @@ export const useForgeStore = create(
         bobThinking: false,
         masterPlan: null,
         subagents: [],
+        chatInstances: [],
+        currentChatInstanceId: null,
         verificationReport: null,
         iteration: 0,
         error: null
@@ -115,8 +190,10 @@ export const useForgeStore = create(
       name: 'forge-store',
       storage: createJSONStorage(() => vscodeStorage),
       // Only persist logs and chat history to avoid getting stuck in weird UI phases on reload
-      partialize: (state) => ({ 
-        subagents: state.subagents, 
+      partialize: (state) => ({
+        subagents: state.subagents,
+        chatInstances: state.chatInstances,
+        currentChatInstanceId: state.currentChatInstanceId,
         chatHistory: state.chatHistory,
         projects: state.projects,
         currentProject: state.currentProject,
