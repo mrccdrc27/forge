@@ -115,5 +115,8 @@ window.forge = {
     list: () => callHost('projects:list'),
     create: (args) => callHost('projects:create', args),
     savePlan: (args) => callHost('projects:save-plan', args)
+  },
+  executeCommand: (commandId) => {
+    vscode.postMessage({ command: 'executeCommand', data: { commandId } });
   }
 };

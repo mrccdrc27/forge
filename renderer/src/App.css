@@ -644,4 +644,78 @@ input[type="text"]::placeholder {
   gap: var(--spacing-lg);
 }
 
+/* Configuration Section */
+.config-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.config-section h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0 0 var(--spacing-md) 0;
+  letter-spacing: -0.01em;
+}
+
+.config-buttons {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.config-button {
+  flex: 1;
+  min-width: 140px;
+  background: var(--bg-dark);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+.config-button:hover {
+  background: var(--card-bg);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+
+.config-button:active {
+  transform: translateY(0);
+}
+
+.config-button.verify {
+  border-color: var(--success-color);
+  color: var(--success-color);
+}
+
+.config-button.verify:hover {
+  background: rgba(0, 255, 136, 0.05);
+  border-color: var(--success-color);
+  color: var(--success-color);
+}
+
+@media (max-width: 480px) {
+  .config-buttons {
+    flex-direction: column;
+  }
+  
+  .config-button {
+    min-width: 100%;
+  }
+}
+
 /* Made with Bob */

@@ -35,8 +35,45 @@
         "command": "forge.refresh",
         "title": "Forge: Refresh UI",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "forge.configureWatsonx",
+        "title": "Forge: Configure Watsonx Credentials",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "forge.verifyWatsonx",
+        "title": "Forge: Verify Watsonx Connection",
+        "icon": "$(check)"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Forge",
+      "properties": {
+        "forge.watsonx.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "IBM Watsonx API Key (stored securely in workspace settings)",
+          "scope": "resource"
+        },
+        "forge.watsonx.projectId": {
+          "type": "string",
+          "default": "",
+          "description": "IBM Watsonx Project ID",
+          "scope": "resource"
+        },
+        "forge.server.port": {
+          "type": "number",
+          "default": 3000,
+          "description": "Port for the Forge MCP server"
+        },
+        "forge.budget.maxBobcoins": {
+          "type": "number",
+          "default": 40,
+          "description": "Maximum Bobcoins budget for AI operations"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

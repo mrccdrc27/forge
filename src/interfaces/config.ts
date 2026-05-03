@@ -4,6 +4,8 @@ export interface ForgeConfig {
     host: string;
   };
   watsonx: {
+    apiKey?: string;
+    projectId?: string;
     baseUrl: string;
     models: {
       reasoning: string;

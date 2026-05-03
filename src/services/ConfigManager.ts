@@ -17,6 +17,8 @@ export class ConfigManager extends BaseService {
         host: 'localhost'
       },
       watsonx: {
+        apiKey: undefined,
+        projectId: undefined,
         baseUrl: 'https://us-south.ml.cloud.ibm.com',
         models: {
           reasoning: 'meta-llama/llama-3-3-70b-instruct',
@@ -97,6 +99,15 @@ export class ConfigManager extends BaseService {
     if (config.has('budget.maxBobcoins')) {
       this.config.budget.maxBobcoins = config.get('budget.maxBobcoins')!;
     }
+
+    // Load API credentials from VS Code settings (secure storage)
+    if (config.has('watsonx.apiKey')) {
+      this.config.watsonx.apiKey = config.get('watsonx.apiKey')!;
+    }
+    
+    if (config.has('watsonx.projectId')) {
+      this.config.watsonx.projectId = config.get('watsonx.projectId')!;
+    }
     
     // Add more VS Code settings overrides as needed
   }
@@ -127,6 +138,25 @@ export class ConfigManager extends BaseService {
 
   get<K extends keyof ForgeConfig>(key: K): ForgeConfig[K] {
     return this.config[key];
+  }
+
+  async updateWatsonxCredentials(apiKey: string, projectId: string): Promise<void> {
+    this.config.watsonx.apiKey = apiKey;
+    this.config.watsonx.projectId = projectId;
+    
+    // Save to VS Code settings (workspace level)
+    const config = vscode.workspace.getConfiguration('forge');
+    await config.update('watsonx.apiKey', apiKey, vscode.ConfigurationTarget.Workspace);
+    await config.update('watsonx.projectId', projectId, vscode.ConfigurationTarget.Workspace);
+    
+    this.log('Watsonx credentials updated successfully');
+  }
+
+  getWatsonxCredentials(): { apiKey?: string; projectId?: string } {
+    return {
+      apiKey: this.config.watsonx.apiKey,
+      projectId: this.config.watsonx.projectId
+    };
   }
 
   dispose(): void {

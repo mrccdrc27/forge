@@ -116,6 +116,18 @@ export class ForgeSidebarProvider implements vscode.WebviewViewProvider {
             }
             break;
             
+          case 'executeCommand':
+            // Execute VS Code commands from the webview
+            if (data?.commandId) {
+              try {
+                await vscode.commands.executeCommand(data.commandId);
+              } catch (error: any) {
+                console.error(`[Forge] Failed to execute command ${data.commandId}:`, error);
+                vscode.window.showErrorMessage(`Failed to execute command: ${error.message}`);
+              }
+            }
+            break;
+            
           default:
             console.log('[Forge] Unknown command:', command);
             if (requestId) {

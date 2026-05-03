@@ -16,6 +16,7 @@ import { CleanupScanner } from './services/CleanupScanner';
 import { ForgeStorageManager } from './services/ForgeStorageManager';
 import { SecurityAnalyzer } from './services/SecurityAnalyzer';
 import { CodeSuggestionAnalyzer } from './services/CodeSuggestionAnalyzer';
+import { ConfigManager } from './services/ConfigManager';
 
 export class ForgeController {
   private services: Map<string, IForgeService> = new Map();
@@ -36,6 +37,7 @@ export class ForgeController {
   private cleanupScanner?: CleanupScanner;
   private securityAnalyzer?: SecurityAnalyzer;
   private codeSuggestionAnalyzer?: CodeSuggestionAnalyzer;
+  private configManager?: ConfigManager;
 
   constructor(context: vscode.ExtensionContext) {
     this.sidebarProvider = new ForgeSidebarProvider(context.extensionUri);
@@ -127,8 +129,20 @@ export class ForgeController {
     this.codeSuggestionAnalyzer = codeSuggestionAnalyzer;
   }
 
+  setConfigManager(configManager: ConfigManager) {
+    this.configManager = configManager;
+  }
+
   getSentry() {
     return this.sentry;
+  }
+
+  getConfigManager() {
+    return this.configManager;
+  }
+
+  getWatsonx() {
+    return this.watsonx;
   }
 
   getSecurityAnalyzer() {

@@ -45,6 +45,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize ConfigManager - all other services depend on it
   const config = new ConfigManager(output);
   await controller.registerService(config);
+  controller.setConfigManager(config);
 
   // Register Services with proper dependencies
   const contextEngine = new ContextEngine('context-engine', output);
@@ -153,6 +154,78 @@ export async function activate(context: vscode.ExtensionContext) {
       );
     }
   }
+
+  // Register configuration commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand('forge.configureWatsonx', async () => {
+      const apiKey = await vscode.window.showInputBox({
+        prompt: 'Enter your IBM Watsonx API Key',
+        password: true,
+        placeHolder: 'Your API key will be stored securely',
+        ignoreFocusOut: true
+      });
+
+      if (!apiKey) {
+        vscode.window.showWarningMessage('Configuration cancelled: API Key is required');
+        return;
+      }
+
+      const projectId = await vscode.window.showInputBox({
+        prompt: 'Enter your IBM Watsonx Project ID',
+        placeHolder: 'e.g., 12345678-1234-1234-1234-123456789abc',
+        ignoreFocusOut: true
+      });
+
+      if (!projectId) {
+        vscode.window.showWarningMessage('Configuration cancelled: Project ID is required');
+        return;
+      }
+
+      try {
+        // Update configuration
+        await config.updateWatsonxCredentials(apiKey, projectId);
+        
+        // Update WatsonxClient
+        const watsonxClient = controller.getWatsonx();
+        if (watsonxClient) {
+          watsonxClient.updateCredentials(apiKey, projectId);
+        }
+
+        vscode.window.showInformationMessage('✅ Watsonx credentials configured successfully!');
+        output.appendLine('✅ Watsonx credentials updated');
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage(`Failed to configure Watsonx: ${errorMsg}`);
+        output.appendLine(`❌ Configuration error: ${errorMsg}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('forge.verifyWatsonx', async () => {
+      const watsonxClient = controller.getWatsonx();
+      if (!watsonxClient) {
+        vscode.window.showErrorMessage('Watsonx client is not initialized');
+        return;
+      }
+
+      vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Verifying Watsonx connection...',
+        cancellable: false
+      }, async () => {
+        const result = await watsonxClient.verifyConnection();
+        
+        if (result.success) {
+          vscode.window.showInformationMessage(result.message);
+          output.appendLine(`✅ Verification successful: ${result.message}`);
+        } else {
+          vscode.window.showErrorMessage(result.message);
+          output.appendLine(`❌ Verification failed: ${result.message}`);
+        }
+      });
+    })
+  );
 
   context.subscriptions.push(controller);
   

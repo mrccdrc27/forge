@@ -43,11 +43,43 @@ export default function App() {
     )
   }
 
+  const handleConfigureWatsonx = () => {
+    if (window.forge) {
+      window.forge.executeCommand('forge.configureWatsonx')
+    }
+  }
+
+  const handleVerifyWatsonx = () => {
+    if (window.forge) {
+      window.forge.executeCommand('forge.verifyWatsonx')
+    }
+  }
+
   return (
     <div className="page">
       <div className="header">
         <h1>⬡ Forge</h1>
         <BobcoinFuelGauge compact />
+      </div>
+      
+      <div className="config-section">
+        <h3>⚙️ Configuration</h3>
+        <div className="config-buttons">
+          <button
+            className="config-button"
+            onClick={handleConfigureWatsonx}
+            title="Configure IBM Watsonx API credentials"
+          >
+            🔑 Configure Watsonx
+          </button>
+          <button
+            className="config-button verify"
+            onClick={handleVerifyWatsonx}
+            title="Test your Watsonx connection"
+          >
+            ✓ Verify Connection
+          </button>
+        </div>
       </div>
       
       <ActivityStream />

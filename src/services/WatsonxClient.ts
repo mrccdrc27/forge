@@ -35,50 +35,55 @@ export class WatsonxClient extends BaseService {
   }
 
   private async loadConfig() {
-    // Build a list of candidate paths to search for the .env file.
-    // This handles both normal usage and Extension Development Host (F5) scenarios,
-    // where vscode.workspace.workspaceFolders may point to a different folder.
-    const candidatePaths: string[] = [];
-
-    // 1. Workspace root (standard usage)
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-    if (workspaceRoot) {
-      candidatePaths.push(path.join(workspaceRoot, 'watson', '.env'));
+    // First, try to load from ConfigManager (VS Code settings)
+    const credentials = this.config.getWatsonxCredentials();
+    if (credentials.apiKey && credentials.projectId) {
+      this.apiKey = credentials.apiKey;
+      this.projectId = credentials.projectId;
+      this.log('✅ Loaded credentials from VS Code settings');
     } else {
-      this.log('⚠️ No workspace folder found.');
-    }
+      // Fallback to .env file
+      const candidatePaths: string[] = [];
 
-    // 2. Extension directory fallback: dist/services/ -> up 2 levels -> watson/.env
-    //    This works when running via F5 (Extension Development Host).
-    const extDirFallback = path.join(__dirname, '..', '..', 'watson', '.env');
-    candidatePaths.push(extDirFallback);
-
-    let loaded = false;
-    for (const envPath of candidatePaths) {
-      this.log(`Checking for .env at: ${envPath}`);
-      if (fs.existsSync(envPath)) {
-        try {
-          const envContent = fs.readFileSync(envPath, 'utf8');
-          const envConfig = dotenv.parse(envContent);
-
-          this.apiKey = envConfig.WATSON_API_KEY;
-          this.projectId = envConfig.WATSON_PROJECT_ID;
-          this.baseUrl = envConfig.WATSON_URL;
-
-          if (this.apiKey) this.log(`✅ Loaded WATSON_API_KEY from: ${envPath}`);
-          if (this.projectId) this.log(`✅ Loaded WATSON_PROJECT_ID from: ${envPath}`);
-          loaded = true;
-          break; // Stop after first successful load
-        } catch (err) {
-          this.log(`❌ Failed to parse .env at ${envPath}: ${err}`);
-        }
+      // 1. Workspace root (standard usage)
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+      if (workspaceRoot) {
+        candidatePaths.push(path.join(workspaceRoot, 'watson', '.env'));
       } else {
-        this.log(`   Not found: ${envPath}`);
+        this.log('⚠️ No workspace folder found.');
       }
-    }
 
-    if (!loaded) {
-      this.log('⚠️ Could not find watson/.env in any candidate path. Running in MOCK mode.');
+      // 2. Extension directory fallback: dist/services/ -> up 2 levels -> watson/.env
+      const extDirFallback = path.join(__dirname, '..', '..', 'watson', '.env');
+      candidatePaths.push(extDirFallback);
+
+      let loaded = false;
+      for (const envPath of candidatePaths) {
+        this.log(`Checking for .env at: ${envPath}`);
+        if (fs.existsSync(envPath)) {
+          try {
+            const envContent = fs.readFileSync(envPath, 'utf8');
+            const envConfig = dotenv.parse(envContent);
+
+            this.apiKey = envConfig.WATSON_API_KEY;
+            this.projectId = envConfig.WATSON_PROJECT_ID;
+            this.baseUrl = envConfig.WATSON_URL;
+
+            if (this.apiKey) this.log(`✅ Loaded WATSON_API_KEY from: ${envPath}`);
+            if (this.projectId) this.log(`✅ Loaded WATSON_PROJECT_ID from: ${envPath}`);
+            loaded = true;
+            break;
+          } catch (err) {
+            this.log(`❌ Failed to parse .env at ${envPath}: ${err}`);
+          }
+        } else {
+          this.log(`   Not found: ${envPath}`);
+        }
+      }
+
+      if (!loaded) {
+        this.log('⚠️ Could not find watson/.env in any candidate path. Running in MOCK mode.');
+      }
     }
 
     if (!this.baseUrl) {
@@ -197,6 +202,50 @@ export class WatsonxClient extends BaseService {
         if (attempts === 3) throw new Error(`Failed to generate valid JSON after 3 attempts: ${err}`);
       }
     }
+  }
+
+  async verifyConnection(): Promise<{ success: boolean; message: string }> {
+    if (!this.apiKey || !this.projectId) {
+      return {
+        success: false,
+        message: 'API Key or Project ID is missing. Please configure credentials first.'
+      };
+    }
+
+    try {
+      // Try to get an access token
+      const token = await this.getAccessToken();
+      
+      // Try a simple test generation
+      const testPrompt = 'Hello';
+      const response = await this.generate(testPrompt, 'ibm/granite-3-8b-instruct');
+      
+      if (response.content) {
+        return {
+          success: true,
+          message: `✅ Connection successful! Model: ${response.model}, Tokens: ${response.usage.input_tokens + response.usage.output_tokens}`
+        };
+      } else {
+        return {
+          success: false,
+          message: 'Connection established but received empty response.'
+        };
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      return {
+        success: false,
+        message: `❌ Connection failed: ${errorMsg}`
+      };
+    }
+  }
+
+  updateCredentials(apiKey: string, projectId: string): void {
+    this.apiKey = apiKey;
+    this.projectId = projectId;
+    this.accessToken = undefined;
+    this.tokenExpiry = undefined;
+    this.log('Credentials updated');
   }
 
   dispose(): void {
