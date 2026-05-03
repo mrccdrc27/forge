@@ -35,31 +35,50 @@ export class WatsonxClient extends BaseService {
   }
 
   private async loadConfig() {
+    // Build a list of candidate paths to search for the .env file.
+    // This handles both normal usage and Extension Development Host (F5) scenarios,
+    // where vscode.workspace.workspaceFolders may point to a different folder.
+    const candidatePaths: string[] = [];
+
+    // 1. Workspace root (standard usage)
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-    if (!workspaceRoot) {
-      this.log('⚠️ No workspace folder found. Skipping .env load.');
-      return;
+    if (workspaceRoot) {
+      candidatePaths.push(path.join(workspaceRoot, 'watson', '.env'));
+    } else {
+      this.log('⚠️ No workspace folder found.');
     }
 
-    const envPath = path.join(workspaceRoot, 'watson', '.env');
-    this.log(`Checking for .env at: ${envPath}`);
-    
-    if (fs.existsSync(envPath)) {
-      try {
-        const envContent = fs.readFileSync(envPath, 'utf8');
-        const envConfig = dotenv.parse(envContent);
-        
-        this.apiKey = envConfig.WATSON_API_KEY;
-        this.projectId = envConfig.WATSON_PROJECT_ID;
-        this.baseUrl = envConfig.WATSON_URL;
-        
-        if (this.apiKey) this.log('✅ Loaded WATSON_API_KEY');
-        if (this.projectId) this.log('✅ Loaded WATSON_PROJECT_ID');
-      } catch (err) {
-        this.log(`❌ Failed to parse .env: ${err}`);
+    // 2. Extension directory fallback: dist/services/ -> up 2 levels -> watson/.env
+    //    This works when running via F5 (Extension Development Host).
+    const extDirFallback = path.join(__dirname, '..', '..', 'watson', '.env');
+    candidatePaths.push(extDirFallback);
+
+    let loaded = false;
+    for (const envPath of candidatePaths) {
+      this.log(`Checking for .env at: ${envPath}`);
+      if (fs.existsSync(envPath)) {
+        try {
+          const envContent = fs.readFileSync(envPath, 'utf8');
+          const envConfig = dotenv.parse(envContent);
+
+          this.apiKey = envConfig.WATSON_API_KEY;
+          this.projectId = envConfig.WATSON_PROJECT_ID;
+          this.baseUrl = envConfig.WATSON_URL;
+
+          if (this.apiKey) this.log(`✅ Loaded WATSON_API_KEY from: ${envPath}`);
+          if (this.projectId) this.log(`✅ Loaded WATSON_PROJECT_ID from: ${envPath}`);
+          loaded = true;
+          break; // Stop after first successful load
+        } catch (err) {
+          this.log(`❌ Failed to parse .env at ${envPath}: ${err}`);
+        }
+      } else {
+        this.log(`   Not found: ${envPath}`);
       }
-    } else {
-      this.log('⚠️ .env file not found in watson directory.');
+    }
+
+    if (!loaded) {
+      this.log('⚠️ Could not find watson/.env in any candidate path. Running in MOCK mode.');
     }
 
     if (!this.baseUrl) {
@@ -143,7 +162,7 @@ export class WatsonxClient extends BaseService {
     this.log(`MOCK Generating with ${model}...`);
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    let content = 'Mock response from Watsonx';
+    let content = '[FORGE v2 MOCK] Credentials not loaded - check Forge Output channel for path diagnostics.';
     if (prompt.toLowerCase().includes('json')) {
       content = JSON.stringify({
         status: 'success',
