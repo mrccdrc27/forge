@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
 import { BaseService } from './BaseService';
 import { ResourceArbitrator } from './ResourceArbitrator';
 import { ConfigManager } from './ConfigManager';
@@ -85,7 +86,6 @@ export class SecurityAnalyzer extends BaseService {
 
   private async getChangedFiles(workspaceRoot: string): Promise<string[]> {
     try {
-      const { execSync } = require('child_process');
       const output = execSync('git diff --name-only HEAD', { 
         cwd: workspaceRoot,
         encoding: 'utf8'

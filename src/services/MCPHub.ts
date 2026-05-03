@@ -174,6 +174,9 @@ export class MCPHub extends BaseService {
           description: "Delegate a specific coding task to the Forge internal worker model",
           inputSchema: {
             type: "object",
+            properties: {
+              task: { type: "string", description: "The coding task to delegate to the worker model" }
+            },
             required: ["task"]
           }
         },
