@@ -11,14 +11,10 @@
             "id": "143965710e5c3d86",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "core/tasks/resource_economist.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "resource_economist"
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
             }
           }
         ]
@@ -78,7 +74,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 221.5
+    "width": 339.5
   },
   "right": {
     "id": "f3be6bea97634b53",
@@ -185,6 +181,11 @@
   },
   "active": "143965710e5c3d86",
   "lastOpenFiles": [
+    "core/build/update-extension-icon-h7f2.md",
+    "wiki/Foundation Models.md",
+    "wiki/IBM Bob Dev Day Hackathon.md",
+    "core/tasks/resource_economist.md",
+    "core/build/improve-forge-context-f4a2.md",
     "core/build/fix-build-engine-parsing-b3a1.md",
     "core/build/forge-intelligence-tools-x8y9.md",
     "core/build/implement-forge-build-t8a9.md",
@@ -197,7 +198,6 @@
     "core/build/FINAL_ACCOMPLISHMENT_OVERLAY.md",
     "core/tasks/overlay_architect.md",
     "core/tasks/mcp_extension_engineer.md",
-    "core/tasks/resource_economist.md",
     "core/build/forge-full-integration-f4d2.md",
     "core/build/accomplishment-report-final.md",
     "core/build/final-resource-arbitrage-7d9a.md",
@@ -207,12 +207,8 @@
     "core/build/resource-arbitrage-foundations-c4e9.md",
     "core/build/create-reporter-8f2c.md",
     "core/build/plan.md",
-    "core/build/mcp-bob-integration-e9a2.md",
     "core/tasks",
-    "core/index.md",
     "core/build",
-    "core/answers/index.md",
-    "core/answers/watson_experiments.md",
     "core/answers",
     "core/archive",
     "core/tracking",

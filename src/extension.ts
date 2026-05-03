@@ -28,7 +28,8 @@ export async function activate(context: vscode.ExtensionContext) {
   await controller.registerService(config);
 
   // Register Services with proper dependencies
-  await controller.registerService(new ContextEngine('context-engine', output));
+  const contextEngine = new ContextEngine('context-engine', output);
+  await controller.registerService(contextEngine);
   
   const sentry = new ResourceSentry(output, config);
   await controller.registerService(sentry);
@@ -89,6 +90,7 @@ export async function activate(context: vscode.ExtensionContext) {
   mcpHub.setDocumentationEngine(documentationEngine);
   mcpHub.setRetryAdvisor(retryAdvisor);
   mcpHub.setCleanupScanner(cleanupScanner);
+  mcpHub.setContextEngine(contextEngine);
   
   // Now start the MCP server with all dependencies ready
   try {

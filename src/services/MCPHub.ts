@@ -16,6 +16,7 @@ import { DependencyAdvisor } from "./DependencyAdvisor";
 import { DocumentationEngine } from "./DocumentationEngine";
 import { RetryAdvisor } from "./RetryAdvisor";
 import { CleanupScanner } from "./CleanupScanner";
+import { ContextEngine } from "./ContextEngine";
 import express from "express";
 
 export class MCPHub extends BaseService {
@@ -33,6 +34,7 @@ export class MCPHub extends BaseService {
   private documentationEngine?: DocumentationEngine;
   private retryAdvisor?: RetryAdvisor;
   private cleanupScanner?: CleanupScanner;
+  private contextEngine?: ContextEngine;
   private serverStarted: boolean = false;
 
   private _onEvent = new vscode.EventEmitter<{ type: string; payload: any }>();
@@ -121,6 +123,10 @@ export class MCPHub extends BaseService {
 
   setCleanupScanner(cleanupScanner: CleanupScanner) {
     this.cleanupScanner = cleanupScanner;
+  }
+
+  setContextEngine(contextEngine: ContextEngine) {
+    this.contextEngine = contextEngine;
   }
 
   private setupHandlers() {
@@ -304,13 +310,35 @@ export class MCPHub extends BaseService {
           case "forge.scaffold": {
             if (!this.arbitrator) throw new Error("ResourceArbitrator not initialized");
             const { requirements, name: projectName } = args as any;
-            const prompt = `You are an expert script finding AI. The user wants to scaffold a new project named "${projectName}" with these requirements: "${requirements}". 
-Provide the exact CLI commands (e.g. npx, pip, cargo, django-admin, etc.) to generate the most bare-bones, minimal project structure for this. 
-Return ONLY the raw commands in a structured markdown code block. Do not write the actual source code files yourself, just the scaffolding commands.`;
+            
+            // Gather system context
+            let systemContextStr = "";
+            let platform = "unknown";
+            if (this.contextEngine) {
+              const ctx = await this.contextEngine.getSystemContext();
+              platform = ctx.platform;
+              systemContextStr = `\n\nSYSTEM CONTEXT:\n- OS: ${ctx.platform} (${ctx.arch})\n- Tools: ${Object.entries(ctx.tools).filter(([_, v]) => v).map(([k, v]) => `${k} (${v})`).join(', ') || 'None detected'}`;
+            }
+
+            const prompt = `You are an expert project scaffolding AI. 
+Target Project Name: "${projectName}"
+Requirements: "${requirements}"
+${systemContextStr}
+
+Provide a SINGLE, clean, executable shell script to scaffold this project with the MOST MINIMAL structure possible.
+
+RULES:
+1. Use ONLY essential files and directories for a bare-bones setup.
+2. Ensure commands are compatible with the detected OS: ${platform} (Use PowerShell for win32, Bash for linux/darwin).
+3. Return ONLY the raw script inside a single markdown code block.
+4. Do NOT include any introductory or concluding text.
+5. Do NOT write full source code, just the setup commands and boilerplate file creation (e.g. using 'echo', 'touch', or 'New-Item').
+6. Output must be machine-readable and ready to be executed.`;
             const result = await this.arbitrator.executeTask({ task: prompt });
             response = { content: [{ type: "text", text: result }] };
             break;
           }
+
 
           case "forge.execute_task": {
             if (!this.arbitrator) throw new Error("ResourceArbitrator not initialized");
