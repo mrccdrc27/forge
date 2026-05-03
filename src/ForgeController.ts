@@ -8,6 +8,11 @@ import { MCPHub } from './services/MCPHub';
 import { AtomicWriter } from './services/AtomicWriter';
 import { HistoryExporter } from './services/HistoryExporter';
 import { BuildEngine } from './services/BuildEngine';
+import { CodebaseAnalyzer } from './services/CodebaseAnalyzer';
+import { DependencyAdvisor } from './services/DependencyAdvisor';
+import { DocumentationEngine } from './services/DocumentationEngine';
+import { RetryAdvisor } from './services/RetryAdvisor';
+import { CleanupScanner } from './services/CleanupScanner';
 
 export class ForgeController {
   private services: Map<string, IForgeService> = new Map();
@@ -20,6 +25,11 @@ export class ForgeController {
   private writer?: AtomicWriter;
   private historyExporter?: HistoryExporter;
   private buildEngine?: BuildEngine;
+  private codebaseAnalyzer?: CodebaseAnalyzer;
+  private dependencyAdvisor?: DependencyAdvisor;
+  private documentationEngine?: DocumentationEngine;
+  private retryAdvisor?: RetryAdvisor;
+  private cleanupScanner?: CleanupScanner;
 
   constructor(context: vscode.ExtensionContext) {
     this.sidebarProvider = new ForgeSidebarProvider(context.extensionUri);
@@ -72,6 +82,26 @@ export class ForgeController {
         data: event.payload
       });
     });
+  }
+
+  setCodebaseAnalyzer(codebaseAnalyzer: CodebaseAnalyzer) {
+    this.codebaseAnalyzer = codebaseAnalyzer;
+  }
+
+  setDependencyAdvisor(dependencyAdvisor: DependencyAdvisor) {
+    this.dependencyAdvisor = dependencyAdvisor;
+  }
+
+  setDocumentationEngine(documentationEngine: DocumentationEngine) {
+    this.documentationEngine = documentationEngine;
+  }
+
+  setRetryAdvisor(retryAdvisor: RetryAdvisor) {
+    this.retryAdvisor = retryAdvisor;
+  }
+
+  setCleanupScanner(cleanupScanner: CleanupScanner) {
+    this.cleanupScanner = cleanupScanner;
   }
 
   getSentry() {

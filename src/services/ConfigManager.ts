@@ -34,6 +34,20 @@ export class ConfigManager extends BaseService {
       workspace: {
         requireWorkspaceFolder: true,
         defaultScaffoldPath: '.'
+      },
+      codebaseAnalyzer: {
+        maxFilesToScan: 200,
+        maxCharsPerFile: 3000,
+        totalCharBudget: 12000,
+        excludePatterns: ['**/node_modules/**', '**/dist/**', '**/.git/**']
+      },
+      dependencyAdvisor: {
+        registryUrl: 'https://registry.npmjs.org',
+        maxChangelogChars: 8000
+      },
+      cleanupScanner: {
+        maxFilesToScan: 20,
+        staticOnly: false
       }
     };
   }
@@ -100,8 +114,11 @@ export class ConfigManager extends BaseService {
         ...user.budget,
         costs: { ...defaults.budget.costs, ...user.budget?.costs }
       },
-      workspace: { ...defaults.workspace, ...user.workspace }
-    };
+      workspace: { ...defaults.workspace, ...user.workspace },
+      codebaseAnalyzer: { ...defaults.codebaseAnalyzer, ...user.codebaseAnalyzer },
+      dependencyAdvisor: { ...defaults.dependencyAdvisor, ...user.dependencyAdvisor },
+      cleanupScanner: { ...defaults.cleanupScanner, ...user.cleanupScanner }
+    } as ForgeConfig;
   }
 
   getConfig(): ForgeConfig {

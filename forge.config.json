@@ -26,5 +26,19 @@
     "allowAbsolutePaths": false,
     "defaultTargetPath": ".",
     "maxFilesPerBuild": 50
+  },
+  "codebaseAnalyzer": {
+    "maxFilesToScan": 200,
+    "maxCharsPerFile": 3000,
+    "totalCharBudget": 12000,
+    "excludePatterns": ["**/node_modules/**", "**/dist/**", "**/.git/**"]
+  },
+  "dependencyAdvisor": {
+    "registryUrl": "https://registry.npmjs.org",
+    "maxChangelogChars": 8000
+  },
+  "cleanupScanner": {
+    "maxFilesToScan": 20,
+    "staticOnly": false
   }
 }

@@ -9,6 +9,11 @@ import { AtomicWriter } from './services/AtomicWriter';
 import { HistoryExporter } from './services/HistoryExporter';
 import { ConfigManager } from './services/ConfigManager';
 import { BuildEngine } from './services/BuildEngine';
+import { CodebaseAnalyzer } from './services/CodebaseAnalyzer';
+import { DependencyAdvisor } from './services/DependencyAdvisor';
+import { DocumentationEngine } from './services/DocumentationEngine';
+import { RetryAdvisor } from './services/RetryAdvisor';
+import { CleanupScanner } from './services/CleanupScanner';
 
 let controller: ForgeController;
 
@@ -49,6 +54,26 @@ export async function activate(context: vscode.ExtensionContext) {
   await controller.registerService(buildEngine);
   controller.setBuildEngine(buildEngine);
 
+  const codebaseAnalyzer = new CodebaseAnalyzer(output, arbitrator, config);
+  await controller.registerService(codebaseAnalyzer);
+  controller.setCodebaseAnalyzer(codebaseAnalyzer);
+
+  const dependencyAdvisor = new DependencyAdvisor(output, arbitrator, config);
+  await controller.registerService(dependencyAdvisor);
+  controller.setDependencyAdvisor(dependencyAdvisor);
+
+  const documentationEngine = new DocumentationEngine(output, arbitrator);
+  await controller.registerService(documentationEngine);
+  controller.setDocumentationEngine(documentationEngine);
+
+  const retryAdvisor = new RetryAdvisor(output, arbitrator);
+  await controller.registerService(retryAdvisor);
+  controller.setRetryAdvisor(retryAdvisor);
+
+  const cleanupScanner = new CleanupScanner(output, arbitrator, config);
+  await controller.registerService(cleanupScanner);
+  controller.setCleanupScanner(cleanupScanner);
+
   // Initialize MCPHub but don't start server yet
   const mcpHub = new MCPHub('mcp-hub', output);
   await controller.registerService(mcpHub);
@@ -59,6 +84,11 @@ export async function activate(context: vscode.ExtensionContext) {
   mcpHub.setArbitrator(arbitrator);
   mcpHub.setConfig(config);
   mcpHub.setBuildEngine(buildEngine);
+  mcpHub.setCodebaseAnalyzer(codebaseAnalyzer);
+  mcpHub.setDependencyAdvisor(dependencyAdvisor);
+  mcpHub.setDocumentationEngine(documentationEngine);
+  mcpHub.setRetryAdvisor(retryAdvisor);
+  mcpHub.setCleanupScanner(cleanupScanner);
   
   // Now start the MCP server with all dependencies ready
   try {

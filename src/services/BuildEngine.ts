@@ -113,10 +113,21 @@ Format:
 
         if (jsonStr) {
           const parsed = JSON.parse(jsonStr);
-          blueprint = parsed.blueprint || [];
           
-          if (!Array.isArray(blueprint)) {
-            throw new Error("Parsed JSON does not contain a 'blueprint' array");
+          if (Array.isArray(parsed)) {
+            blueprint = parsed;
+          } else if (parsed.blueprint && Array.isArray(parsed.blueprint)) {
+            blueprint = parsed.blueprint;
+          } else if (parsed.files && Array.isArray(parsed.files)) {
+            blueprint = parsed.files;
+          } else {
+            // Find the first array property
+            const firstArray = Object.values(parsed).find(val => Array.isArray(val));
+            blueprint = (firstArray as any[]) || [];
+          }
+          
+          if (!Array.isArray(blueprint) || blueprint.length === 0) {
+            throw new Error("Parsed JSON does not contain a valid array of files (blueprint is empty)");
           }
         } else {
           this.log(`FAILED TO FIND JSON IN RESPONSE: ${blueprintResult}`);

@@ -11,6 +11,11 @@ import { ResourceSentry } from "./ResourceSentry";
 import { ResourceArbitrator } from "./ResourceArbitrator";
 import { ConfigManager } from "./ConfigManager";
 import { BuildEngine } from "./BuildEngine";
+import { CodebaseAnalyzer } from "./CodebaseAnalyzer";
+import { DependencyAdvisor } from "./DependencyAdvisor";
+import { DocumentationEngine } from "./DocumentationEngine";
+import { RetryAdvisor } from "./RetryAdvisor";
+import { CleanupScanner } from "./CleanupScanner";
 import express from "express";
 
 export class MCPHub extends BaseService {
@@ -23,6 +28,11 @@ export class MCPHub extends BaseService {
   private arbitrator?: ResourceArbitrator;
   private config?: ConfigManager;
   private buildEngine?: BuildEngine;
+  private codebaseAnalyzer?: CodebaseAnalyzer;
+  private dependencyAdvisor?: DependencyAdvisor;
+  private documentationEngine?: DocumentationEngine;
+  private retryAdvisor?: RetryAdvisor;
+  private cleanupScanner?: CleanupScanner;
   private serverStarted: boolean = false;
 
   private _onEvent = new vscode.EventEmitter<{ type: string; payload: any }>();
@@ -93,6 +103,26 @@ export class MCPHub extends BaseService {
     this.buildEngine = buildEngine;
   }
 
+  setCodebaseAnalyzer(codebaseAnalyzer: CodebaseAnalyzer) {
+    this.codebaseAnalyzer = codebaseAnalyzer;
+  }
+
+  setDependencyAdvisor(dependencyAdvisor: DependencyAdvisor) {
+    this.dependencyAdvisor = dependencyAdvisor;
+  }
+
+  setDocumentationEngine(documentationEngine: DocumentationEngine) {
+    this.documentationEngine = documentationEngine;
+  }
+
+  setRetryAdvisor(retryAdvisor: RetryAdvisor) {
+    this.retryAdvisor = retryAdvisor;
+  }
+
+  setCleanupScanner(cleanupScanner: CleanupScanner) {
+    this.cleanupScanner = cleanupScanner;
+  }
+
   private setupHandlers() {
     if (!this.server) return;
 
@@ -155,6 +185,73 @@ export class MCPHub extends BaseService {
               targetPath: { type: "string", description: "Optional subfolder path relative to workspace root (default: './<name>')" }
             },
             required: ["name", "description"]
+          }
+        },
+        {
+          name: "forge.analyze_codebase",
+          description: "Scans the workspace and returns an LLM-narrated architectural summary to answer a specific question about the codebase.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              query: { type: "string", description: "Specific question about the codebase architecture or a feature area" }
+            },
+            required: ["query"]
+          }
+        },
+        {
+          name: "forge.dependency_impact",
+          description: "Analyzes the impact of upgrading a dependency. Fetches the changelog and cross-references it with actual usages in the codebase.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              package: { type: "string" },
+              targetVersion: { type: "string" },
+              currentVersion: { type: "string", description: "Optional — auto-detected from package.json if omitted" }
+            },
+            required: ["package", "targetVersion"]
+          }
+        },
+        {
+          name: "forge.document_module",
+          description: "Reads a module or feature directory and generates accurate end-to-end developer documentation by tracing the actual code flow.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              modulePath: { type: "string", description: "Relative path to the module/directory, or a feature keyword" }
+            },
+            required: ["modulePath"]
+          }
+        },
+        {
+          name: "forge.retry_advisor",
+          description: "Diagnoses a build/runtime error and recommends the next recovery action. Tracks error patterns across the session.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              error: { type: "string", description: "The full error message or stack trace" },
+              attemptedFixes: {
+                type: "array",
+                items: { type: "string" },
+                description: "List of fixes already attempted"
+              },
+              fileContext: { type: "string", description: "Optional: relevant code snippet around the error" }
+            },
+            required: ["error", "attemptedFixes"]
+          }
+        },
+        {
+          name: "forge.cleanup_scan",
+          description: "Scans recently modified files for leftover debug artifacts (console.logs, TODOs, secrets) before marking a task complete.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              filePaths: {
+                type: "array",
+                items: { type: "string" },
+                description: "List of relative file paths to scan"
+              }
+            },
+            required: ["filePaths"]
           }
         }
       ],
@@ -227,6 +324,42 @@ Return ONLY the raw commands in a structured markdown code block. Do not write t
             const { name, type = 'auto', description, targetPath } = args as any;
             const result = await this.buildEngine.build({ name, type, description, targetPath });
             response = { content: [{ type: "text", text: result.summary }] };
+            break;
+          }
+
+          case "forge.analyze_codebase": {
+            if (!this.codebaseAnalyzer) throw new Error("CodebaseAnalyzer not initialized");
+            const result = await this.codebaseAnalyzer.analyze((args as any).query);
+            response = { content: [{ type: "text", text: result }] };
+            break;
+          }
+
+          case "forge.dependency_impact": {
+            if (!this.dependencyAdvisor) throw new Error("DependencyAdvisor not initialized");
+            const { package: pkg, targetVersion, currentVersion } = args as any;
+            const result = await this.dependencyAdvisor.analyze(pkg, targetVersion, currentVersion);
+            response = { content: [{ type: "text", text: result }] };
+            break;
+          }
+
+          case "forge.document_module": {
+            if (!this.documentationEngine) throw new Error("DocumentationEngine not initialized");
+            const result = await this.documentationEngine.document((args as any).modulePath);
+            response = { content: [{ type: "text", text: result }] };
+            break;
+          }
+
+          case "forge.retry_advisor": {
+            if (!this.retryAdvisor) throw new Error("RetryAdvisor not initialized");
+            const result = await this.retryAdvisor.advise(args as any);
+            response = { content: [{ type: "text", text: result }] };
+            break;
+          }
+
+          case "forge.cleanup_scan": {
+            if (!this.cleanupScanner) throw new Error("CleanupScanner not initialized");
+            const result = await this.cleanupScanner.scan((args as any).filePaths);
+            response = { content: [{ type: "text", text: result }] };
             break;
           }
 

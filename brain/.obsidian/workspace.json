@@ -185,6 +185,8 @@
   },
   "active": "143965710e5c3d86",
   "lastOpenFiles": [
+    "core/build/fix-build-engine-parsing-b3a1.md",
+    "core/build/forge-intelligence-tools-x8y9.md",
     "core/build/implement-forge-build-t8a9.md",
     "core/build/pure-mcp-log-interface-e2a1.md",
     "core/build/expose-mcp-logs-d9f2.md",
@@ -211,8 +213,6 @@
     "core/build",
     "core/answers/index.md",
     "core/answers/watson_experiments.md",
-    "core/answers/vscode_extension_boilerplate.md",
-    "core/intent/scope.md",
     "core/answers",
     "core/archive",
     "core/tracking",
