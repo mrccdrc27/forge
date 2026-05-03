@@ -232,47 +232,111 @@ export class MCPHub extends BaseService {
   }
 
   private async startServer() {
-    this.app = express();
-    const serverConfig = this.config?.getConfig().server;
-    const port = serverConfig?.port || 3000;
-    const host = serverConfig?.host || 'localhost';
+    try {
+      this.app = express();
+      const serverConfig = this.config?.getConfig().server;
+      const port = serverConfig?.port || 3000;
+      const host = serverConfig?.host || 'localhost';
 
-    this.app.get("/sse", async (req: express.Request, res: express.Response) => {
-      if (this.transport) {
-        try {
-          await this.server?.close();
-        } catch (e) {
-          this.log(`Error closing previous server: ${e}`);
+      // Add error handling middleware
+      this.app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+        this.log(`Express middleware error: ${err?.message || err}`);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Internal server error' });
         }
-        
-        this.server = new Server(
-          {
-            name: "forge-mcp-server",
-            version: "0.1.0",
-          },
-          {
-            capabilities: {
-              tools: {},
-            },
+      });
+
+      this.app.get("/sse", async (req: express.Request, res: express.Response) => {
+        try {
+          if (this.transport) {
+            try {
+              await this.server?.close();
+            } catch (e) {
+              this.log(`Error closing previous server: ${e instanceof Error ? e.message : String(e)}`);
+            }
+            
+            this.server = new Server(
+              {
+                name: "forge-mcp-server",
+                version: "0.1.0",
+              },
+              {
+                capabilities: {
+                  tools: {},
+                },
+              }
+            );
+            this.setupHandlers();
           }
-        );
-        this.setupHandlers();
-      }
 
-      this.transport = new SSEServerTransport("/messages", res);
-      await this.server!.connect(this.transport);
-      this.log("Bob connected to MCP SSE.");
-    });
+          // Validate server is ready
+          if (!this.server) {
+            throw new Error("MCP Server not initialized");
+          }
 
-    this.app.post("/messages", async (req: express.Request, res: express.Response) => {
-      if (this.transport) {
-        await this.transport.handlePostMessage(req, res);
-      }
-    });
+          this.transport = new SSEServerTransport("/messages", res);
+          await this.server.connect(this.transport);
+          this.log("Bob connected to MCP SSE.");
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          this.log(`SSE connection error: ${errorMsg}`);
+          if (!res.headersSent) {
+            res.status(500).json({
+              error: 'SSE initialization failed',
+              details: errorMsg
+            });
+          }
+        }
+      });
 
-    this.app.listen(port, host, () => {
-      this.log(`MCP SSE Server listening on http://${host}:${port}/sse`);
-    });
+      this.app.post("/messages", async (req: express.Request, res: express.Response) => {
+        try {
+          if (!this.transport) {
+            throw new Error("SSE transport not initialized. Client must connect to /sse first.");
+          }
+          await this.transport.handlePostMessage(req, res);
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          this.log(`Message handling error: ${errorMsg}`);
+          if (!res.headersSent) {
+            res.status(500).json({
+              error: 'Message handling failed',
+              details: errorMsg
+            });
+          }
+        }
+      });
+
+      // Start server with comprehensive error handling
+      const server = this.app.listen(port, host, () => {
+        this.log(`✅ MCP SSE Server listening on http://${host}:${port}/sse`);
+      });
+
+      // Handle server errors
+      server.on('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'EADDRINUSE') {
+          this.log(`❌ Port ${port} is already in use. Please change the port in forge.config.json or stop the conflicting service.`);
+          throw new Error(`Port ${port} already in use`);
+        } else if (err.code === 'EACCES') {
+          this.log(`❌ Permission denied to bind to port ${port}. Try using a port > 1024 or run with elevated privileges.`);
+          throw new Error(`Permission denied for port ${port}`);
+        } else {
+          this.log(`❌ Server error: ${err.message || String(err)}`);
+          throw err;
+        }
+      });
+
+      // Handle uncaught errors in server
+      server.on('clientError', (err: Error, socket: any) => {
+        this.log(`Client error: ${err.message}`);
+        socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+      });
+
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      this.log(`❌ Failed to start MCP server: ${errorMsg}`);
+      throw new Error(`MCP server startup failed: ${errorMsg}`);
+    }
   }
 
   dispose() {

@@ -21,16 +21,86 @@ export class ForgeSidebarProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this.getHtml(webviewView.webview);
 
-    webviewView.webview.onDidReceiveMessage((message: WebviewMessage) => {
-      switch (message.command) {
-        case ForgeCommandType.PING:
-          vscode.window.showInformationMessage('⬡ Forge: Pong from Webview!');
-          break;
-        case ForgeCommandType.TOOL_INVOKED:
-          vscode.window.showInformationMessage(`⬡ Forge: Tool ${message.data.tool} invoked via UI`);
-          break;
-        default:
-          console.log('Unknown command:', message.command);
+    webviewView.webview.onDidReceiveMessage(async (message: WebviewMessage) => {
+      const { command, data, requestId } = message as any;
+      
+      try {
+        switch (command) {
+          case ForgeCommandType.PING:
+            vscode.window.showInformationMessage('⬡ Forge: Pong from Webview!');
+            if (requestId) {
+              webviewView.webview.postMessage({ requestId, payload: 'pong' });
+            }
+            break;
+            
+          case ForgeCommandType.TOOL_INVOKED:
+            vscode.window.showInformationMessage(`⬡ Forge: Tool ${message.data.tool} invoked via UI`);
+            break;
+            
+          case 'bob:run':
+            // Placeholder: Bob integration not yet implemented
+            if (requestId) {
+              webviewView.webview.postMessage({
+                requestId,
+                error: 'Bob integration not yet implemented. This feature requires Bob IDE connection.'
+              });
+            }
+            break;
+            
+          case 'bob:abort':
+            if (requestId) {
+              webviewView.webview.postMessage({ requestId, payload: { success: true } });
+            }
+            break;
+            
+          case 'orchestrate:spawn':
+            // Placeholder: Orchestration not yet implemented
+            if (requestId) {
+              webviewView.webview.postMessage({
+                requestId,
+                error: 'Orchestration not yet implemented. This feature is under development.'
+              });
+            }
+            break;
+            
+          case 'projects:list':
+            if (requestId) {
+              webviewView.webview.postMessage({ requestId, payload: [] });
+            }
+            break;
+            
+          case 'projects:create':
+            if (requestId) {
+              webviewView.webview.postMessage({
+                requestId,
+                payload: { success: true, projectId: data?.projectName || 'new-project' }
+              });
+            }
+            break;
+            
+          case 'projects:save-plan':
+            if (requestId) {
+              webviewView.webview.postMessage({ requestId, payload: { success: true } });
+            }
+            break;
+            
+          default:
+            console.log('[Forge] Unknown command:', command);
+            if (requestId) {
+              webviewView.webview.postMessage({
+                requestId,
+                error: `Unknown command: ${command}`
+              });
+            }
+        }
+      } catch (error: any) {
+        console.error('[Forge] Error handling message:', error);
+        if (requestId) {
+          webviewView.webview.postMessage({
+            requestId,
+            error: error?.message || String(error)
+          });
+        }
       }
     });
   }

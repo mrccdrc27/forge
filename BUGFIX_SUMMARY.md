@@ -2,7 +2,68 @@
 
 ## Date: 2026-05-02
 
-## Critical Bug Fixed: "AtomicWriter not initialized"
+---
+
+## Critical Bug #2 Fixed: "SSE error: undefined"
+
+### Issue
+Extension activation (F5 debug) was failing with repeated `SSE error: undefined` messages in the logs. The error provided no context and made debugging impossible.
+
+### Root Cause
+1. **Missing Error Handlers**: Express server startup had no error event listeners
+2. **Unhandled SSE Transport Errors**: SSE initialization failures were not caught
+3. **Poor Error Context**: Errors logged as "undefined" due to improper error object handling
+4. **No Graceful Degradation**: Extension would fail completely when MCP server couldn't start
+
+### Solution Implemented
+Added comprehensive error handling throughout the MCP server initialization:
+
+#### MCPHub.ts Changes
+- ✅ Wrapped entire `startServer()` in try-catch
+- ✅ Added Express middleware error handler
+- ✅ Added try-catch around SSE transport initialization
+- ✅ Added server error event listeners (EADDRINUSE, EACCES, etc.)
+- ✅ Added clientError handler for malformed requests
+- ✅ Proper error message extraction (no more "undefined")
+- ✅ Detailed logging with emoji indicators (✅/❌)
+
+#### extension.ts Changes
+- ✅ Wrapped `mcpHub.startServerWhenReady()` in try-catch
+- ✅ Extension continues even if MCP server fails
+- ✅ User-friendly error messages with actionable guidance
+- ✅ Interactive prompts for common issues (port conflicts)
+
+### Error Scenarios Now Handled
+
+| Scenario | Before | After |
+|----------|--------|-------|
+| Port in use | `SSE error: undefined` | `❌ Port 3000 is already in use. Please change the port in forge.config.json` |
+| Permission denied | `SSE error: undefined` | `❌ Permission denied to bind to port 3000. Try using a port > 1024` |
+| SSE transport failure | Silent failure | `SSE connection error: [detailed message]` |
+| Generic errors | `undefined` | Full error context with stack trace |
+
+### Benefits
+- 🎯 Clear, actionable error messages
+- 🛡️ Extension continues working even if MCP server fails
+- 🔍 Detailed logging for debugging
+- 👥 User-friendly guidance for common issues
+- 📊 Proper error tracking and monitoring
+
+### Files Modified
+- `src/services/MCPHub.ts` - Added comprehensive error handling
+- `src/extension.ts` - Added graceful degradation
+- `SSE_ERROR_FIX.md` - Detailed documentation (NEW)
+
+### Testing
+- [x] Code compiles without errors
+- [ ] Extension activates without SSE errors
+- [ ] Port conflict handled gracefully
+- [ ] Permission errors show helpful messages
+- [ ] Extension works in degraded mode when MCP fails
+
+---
+
+## Critical Bug #1 Fixed: "AtomicWriter not initialized"
 
 ### Root Cause
 The MCP server was starting immediately during service initialization, but dependencies (AtomicWriter, ResourceSentry, ConfigManager) were being injected **after** the server was already listening for connections. This created a race condition where Bob IDE could connect and call `forge.scaffold` before the writer was available.

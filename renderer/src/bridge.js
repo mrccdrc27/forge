@@ -14,7 +14,12 @@ window.addEventListener('message', (event) => {
     const { resolve, reject } = callbacks.get(message.requestId);
     callbacks.delete(message.requestId);
     if (message.error) {
-      reject(message.error);
+      const errorMsg = typeof message.error === 'string' ? message.error :
+                       message.error?.message ||
+                       JSON.stringify(message.error) ||
+                       'Unknown error';
+      console.error('[Forge Bridge] Request failed:', errorMsg);
+      reject(new Error(errorMsg));
     } else {
       resolve(message.payload || message.data);
     }
@@ -57,10 +62,30 @@ window.addEventListener('message', (event) => {
   }
 });
 
-function callHost(command, data) {
+function callHost(command, data, timeout = 30000) {
   const requestId = Math.random().toString(36).substring(7);
   return new Promise((resolve, reject) => {
-    callbacks.set(requestId, { resolve, reject });
+    // Set timeout to prevent hanging forever
+    const timeoutId = setTimeout(() => {
+      if (callbacks.has(requestId)) {
+        callbacks.delete(requestId);
+        const errorMsg = `Request timeout: ${command} did not respond within ${timeout}ms. The extension may not have a handler for this command.`;
+        console.warn('[Forge Bridge]', errorMsg);
+        reject(new Error(errorMsg));
+      }
+    }, timeout);
+
+    callbacks.set(requestId, {
+      resolve: (value) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      },
+      reject: (error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      }
+    });
+    
     vscode.postMessage({ command, data, requestId });
   });
 }

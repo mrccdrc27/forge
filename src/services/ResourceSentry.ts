@@ -8,17 +8,19 @@ export class ResourceSentry extends BaseService implements ISentry {
   private totalOutputTokens = 0;
   private actualCost = 0;
   private savedCost = 0;
-  private budget: number;
-  private pricing: Record<string, number>;
+  private budget!: number;
+  private pricing!: Record<string, number>;
 
   private _onUpdate = new vscode.EventEmitter<ResourceSentryData>();
   public readonly onUpdate = this._onUpdate.event;
 
   constructor(output: vscode.OutputChannel, private config: ConfigManager) {
     super('ResourceSentry', output);
-    
-    const budgetConfig = config.getConfig().budget;
-    const models = config.getConfig().watsonx.models;
+  }
+
+  async init(): Promise<void> {
+    const budgetConfig = this.config.getConfig().budget;
+    const models = this.config.getConfig().watsonx.models;
     
     this.budget = budgetConfig.maxBobcoins;
     
@@ -28,9 +30,7 @@ export class ResourceSentry extends BaseService implements ISentry {
       [models.execution]: budgetConfig.costs.granite,
       'default': 0.5
     };
-  }
-
-  async init(): Promise<void> {
+    
     this.log(`Sentry initialized with ${this.budget} Bobcoin budget.`);
   }
 
