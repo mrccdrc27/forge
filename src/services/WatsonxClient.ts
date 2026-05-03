@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as dotenv from 'dotenv';
 import { BaseService } from './BaseService';
 import { ConfigManager } from './ConfigManager';
 
@@ -35,25 +36,35 @@ export class WatsonxClient extends BaseService {
 
   private async loadConfig() {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-    if (!workspaceRoot) return;
+    if (!workspaceRoot) {
+      this.log('⚠️ No workspace folder found. Skipping .env load.');
+      return;
+    }
 
     const envPath = path.join(workspaceRoot, 'watson', '.env');
+    this.log(`Checking for .env at: ${envPath}`);
+    
     if (fs.existsSync(envPath)) {
-      const envContent = fs.readFileSync(envPath, 'utf8');
-      const lines = envContent.split('\n');
-      for (const line of lines) {
-        const [key, value] = line.split('=');
-        if (key && value) {
-          const val = value.trim();
-          if (key === 'WATSON_API_KEY') this.apiKey = val;
-          if (key === 'WATSON_PROJECT_ID') this.projectId = val;
-          if (key === 'WATSON_URL') this.baseUrl = val;
-        }
+      try {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        const envConfig = dotenv.parse(envContent);
+        
+        this.apiKey = envConfig.WATSON_API_KEY;
+        this.projectId = envConfig.WATSON_PROJECT_ID;
+        this.baseUrl = envConfig.WATSON_URL;
+        
+        if (this.apiKey) this.log('✅ Loaded WATSON_API_KEY');
+        if (this.projectId) this.log('✅ Loaded WATSON_PROJECT_ID');
+      } catch (err) {
+        this.log(`❌ Failed to parse .env: ${err}`);
       }
+    } else {
+      this.log('⚠️ .env file not found in watson directory.');
     }
 
     if (!this.baseUrl) {
       this.baseUrl = this.config.getConfig().watsonx.baseUrl;
+      this.log(`Using fallback baseUrl: ${this.baseUrl}`);
     }
   }
 

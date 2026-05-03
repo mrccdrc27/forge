@@ -185,6 +185,7 @@
   },
   "active": "143965710e5c3d86",
   "lastOpenFiles": [
+    "core/build/fix-watsonx-mock-mode-b9f2.md",
     "core/build/fix-sse-cors-e9a2.md",
     "core/build/fix-antigravity-config-b7e2.md",
     "core/build/FINAL_ACCOMPLISHMENT_OVERLAY.md",
@@ -213,7 +214,6 @@
     "core/blueprints/capabilities.md",
     "core/blueprints/scopes.md",
     "core/blueprints/use_case_dark_mode.md",
-    "core/blueprints/resource_manager.md",
     "core/archive",
     "core/tracking",
     "core/blueprints",
