@@ -8,6 +8,7 @@ import { MCPHub } from './services/MCPHub';
 import { AtomicWriter } from './services/AtomicWriter';
 import { HistoryExporter } from './services/HistoryExporter';
 import { ConfigManager } from './services/ConfigManager';
+import { BuildEngine } from './services/BuildEngine';
 
 let controller: ForgeController;
 
@@ -44,6 +45,10 @@ export async function activate(context: vscode.ExtensionContext) {
   await controller.registerService(historyExporter);
   controller.setHistoryExporter(historyExporter);
 
+  const buildEngine = new BuildEngine(output, arbitrator, writer, config);
+  await controller.registerService(buildEngine);
+  controller.setBuildEngine(buildEngine);
+
   // Initialize MCPHub but don't start server yet
   const mcpHub = new MCPHub('mcp-hub', output);
   await controller.registerService(mcpHub);
@@ -53,6 +58,7 @@ export async function activate(context: vscode.ExtensionContext) {
   mcpHub.setSentry(sentry);
   mcpHub.setArbitrator(arbitrator);
   mcpHub.setConfig(config);
+  mcpHub.setBuildEngine(buildEngine);
   
   // Now start the MCP server with all dependencies ready
   try {

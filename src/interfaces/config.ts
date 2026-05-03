@@ -22,6 +22,11 @@ export interface ForgeConfig {
     requireWorkspaceFolder: boolean;
     defaultScaffoldPath: string;
   };
+  build?: {
+    allowAbsolutePaths: boolean;
+    defaultTargetPath: string;
+    maxFilesPerBuild: number;
+  };
 }
 
 // Made with Bob

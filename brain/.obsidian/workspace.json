@@ -185,6 +185,7 @@
   },
   "active": "143965710e5c3d86",
   "lastOpenFiles": [
+    "core/build/implement-forge-build-t8a9.md",
     "core/build/pure-mcp-log-interface-e2a1.md",
     "core/build/expose-mcp-logs-d9f2.md",
     "core/build/forge-scaffold-agentic-c2d4.md",
@@ -213,7 +214,6 @@
     "core/answers/vscode_extension_boilerplate.md",
     "core/intent/scope.md",
     "core/answers",
-    "core/intent/manifesto.md",
     "core/archive",
     "core/tracking",
     "core/blueprints",

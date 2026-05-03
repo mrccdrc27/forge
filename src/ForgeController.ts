@@ -7,6 +7,7 @@ import { ResourceArbitrator } from './services/ResourceArbitrator';
 import { MCPHub } from './services/MCPHub';
 import { AtomicWriter } from './services/AtomicWriter';
 import { HistoryExporter } from './services/HistoryExporter';
+import { BuildEngine } from './services/BuildEngine';
 
 export class ForgeController {
   private services: Map<string, IForgeService> = new Map();
@@ -18,6 +19,7 @@ export class ForgeController {
   private mcpHub?: MCPHub;
   private writer?: AtomicWriter;
   private historyExporter?: HistoryExporter;
+  private buildEngine?: BuildEngine;
 
   constructor(context: vscode.ExtensionContext) {
     this.sidebarProvider = new ForgeSidebarProvider(context.extensionUri);
@@ -62,6 +64,16 @@ export class ForgeController {
     this.writer = writer;
   }
 
+  setBuildEngine(buildEngine: BuildEngine) {
+    this.buildEngine = buildEngine;
+    this.buildEngine.onEvent(event => {
+      this.sidebarProvider.postMessage({
+        command: event.type as any,
+        data: event.payload
+      });
+    });
+  }
+
   getSentry() {
     return this.sentry;
   }
@@ -83,7 +95,8 @@ export class ForgeController {
     context.subscriptions.push(
       vscode.window.registerWebviewViewProvider(
         ForgeSidebarProvider.viewType,
-        this.sidebarProvider
+        this.sidebarProvider,
+        { webviewOptions: { retainContextWhenHidden: true } }
       )
     );
   }

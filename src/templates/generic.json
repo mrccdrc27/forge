@@ -1,0 +1,6 @@
+{
+  "files": {
+    "README.md": "# {{name}}\n\n{{description}}",
+    ".gitignore": "node_modules\n.DS_Store\ndist"
+  }
+}

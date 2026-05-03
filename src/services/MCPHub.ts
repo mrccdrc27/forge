@@ -10,6 +10,7 @@ import { AtomicWriter } from "./AtomicWriter";
 import { ResourceSentry } from "./ResourceSentry";
 import { ResourceArbitrator } from "./ResourceArbitrator";
 import { ConfigManager } from "./ConfigManager";
+import { BuildEngine } from "./BuildEngine";
 import express from "express";
 
 export class MCPHub extends BaseService {
@@ -21,6 +22,7 @@ export class MCPHub extends BaseService {
   private sentry?: ResourceSentry;
   private arbitrator?: ResourceArbitrator;
   private config?: ConfigManager;
+  private buildEngine?: BuildEngine;
   private serverStarted: boolean = false;
 
   private _onEvent = new vscode.EventEmitter<{ type: string; payload: any }>();
@@ -87,6 +89,10 @@ export class MCPHub extends BaseService {
     this.config = config;
   }
 
+  setBuildEngine(buildEngine: BuildEngine) {
+    this.buildEngine = buildEngine;
+  }
+
   private setupHandlers() {
     if (!this.server) return;
 
@@ -134,10 +140,21 @@ export class MCPHub extends BaseService {
           description: "Delegate a specific coding task to the Forge internal worker model",
           inputSchema: {
             type: "object",
-            properties: {
-              task: { type: "string", description: "The task description to execute" }
-            },
             required: ["task"]
+          }
+        },
+        {
+          name: "forge.build",
+          description: "Scaffold a complete project from scratch: generates the folder structure, boilerplate files, and configuration based on a plain-language description. Writes everything to disk atomically.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Project/module name (used for folder naming and package names)" },
+              type: { type: "string", description: "Stack type hint (e.g. 'react-vite', 'express', 'fastapi', 'python-cli'). Use 'auto' to let Forge detect the best fit." },
+              description: { type: "string", description: "Plain-language description of what the project does and any specific requirements" },
+              targetPath: { type: "string", description: "Optional subfolder path relative to workspace root (default: './<name>')" }
+            },
+            required: ["name", "description"]
           }
         }
       ],
@@ -202,6 +219,14 @@ Return ONLY the raw commands in a structured markdown code block. Do not write t
             if (!this.arbitrator) throw new Error("ResourceArbitrator not initialized");
             const result = await this.arbitrator.executeTask({ task: (args as any).task });
             response = { content: [{ type: "text", text: result }] };
+            break;
+          }
+
+          case "forge.build": {
+            if (!this.buildEngine) throw new Error("BuildEngine not initialized");
+            const { name, type = 'auto', description, targetPath } = args as any;
+            const result = await this.buildEngine.build({ name, type, description, targetPath });
+            response = { content: [{ type: "text", text: result.summary }] };
             break;
           }
 

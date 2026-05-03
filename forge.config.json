@@ -21,5 +21,10 @@
   "workspace": {
     "requireWorkspaceFolder": true,
     "defaultScaffoldPath": "."
+  },
+  "build": {
+    "allowAbsolutePaths": false,
+    "defaultTargetPath": ".",
+    "maxFilesPerBuild": 50
   }
 }
