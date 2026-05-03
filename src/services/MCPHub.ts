@@ -15,7 +15,8 @@ import express from "express";
 export class MCPHub extends BaseService {
   private server?: Server;
   private app?: express.Application;
-  private transport?: SSEServerTransport;
+  private httpServer?: any;
+  private transports: Map<string, SSEServerTransport> = new Map();
   private writer?: AtomicWriter;
   private sentry?: ResourceSentry;
   private arbitrator?: ResourceArbitrator;
@@ -238,6 +239,18 @@ export class MCPHub extends BaseService {
       const port = serverConfig?.port || 3000;
       const host = serverConfig?.host || 'localhost';
 
+      // CORS middleware
+      this.app.use((req, res, next) => {
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        if (req.method === 'OPTIONS') {
+          res.sendStatus(200);
+          return;
+        }
+        next();
+      });
+
       // Add error handling middleware
       this.app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
         this.log(`Express middleware error: ${err?.message || err}`);
@@ -248,35 +261,24 @@ export class MCPHub extends BaseService {
 
       this.app.get("/sse", async (req: express.Request, res: express.Response) => {
         try {
-          if (this.transport) {
-            try {
-              await this.server?.close();
-            } catch (e) {
-              this.log(`Error closing previous server: ${e instanceof Error ? e.message : String(e)}`);
-            }
-            
-            this.server = new Server(
-              {
-                name: "forge-mcp-server",
-                version: "0.1.0",
-              },
-              {
-                capabilities: {
-                  tools: {},
-                },
-              }
-            );
-            this.setupHandlers();
-          }
-
           // Validate server is ready
           if (!this.server) {
             throw new Error("MCP Server not initialized");
           }
 
-          this.transport = new SSEServerTransport("/messages", res);
-          await this.server.connect(this.transport);
-          this.log("Bob connected to MCP SSE.");
+          // Create a new transport for this connection (do NOT close/recreate the Server)
+          const transport = new SSEServerTransport("/messages", res);
+          const sessionId = transport.sessionId;
+          this.transports.set(sessionId, transport);
+
+          // Clean up when client disconnects
+          res.on('close', () => {
+            this.transports.delete(sessionId);
+            this.log(`SSE client disconnected (session ${sessionId}). Active sessions: ${this.transports.size}`);
+          });
+
+          await this.server.connect(transport);
+          this.log(`Bob connected to MCP SSE (session ${sessionId}). Active sessions: ${this.transports.size}`);
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           this.log(`SSE connection error: ${errorMsg}`);
@@ -291,10 +293,20 @@ export class MCPHub extends BaseService {
 
       this.app.post("/messages", async (req: express.Request, res: express.Response) => {
         try {
-          if (!this.transport) {
-            throw new Error("SSE transport not initialized. Client must connect to /sse first.");
+          // Route by sessionId query param that the SDK appends to the endpoint URL
+          const sessionId = (req.query as any).sessionId as string | undefined;
+          const transport = sessionId ? this.transports.get(sessionId) : undefined;
+
+          if (!transport) {
+            const ids = Array.from(this.transports.keys()).join(', ') || 'none';
+            this.log(`Message for unknown session '${sessionId}'. Active sessions: ${ids}`);
+            res.status(503).json({
+              error: 'No SSE session found.',
+              hint: 'Connect to /sse first. Ensure the sessionId query param matches.'
+            });
+            return;
           }
-          await this.transport.handlePostMessage(req, res);
+          await transport.handlePostMessage(req, res);
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           this.log(`Message handling error: ${errorMsg}`);
@@ -311,6 +323,7 @@ export class MCPHub extends BaseService {
       const server = this.app.listen(port, host, () => {
         this.log(`✅ MCP SSE Server listening on http://${host}:${port}/sse`);
       });
+      this.httpServer = server;
 
       // Handle server errors
       server.on('error', (err: NodeJS.ErrnoException) => {
@@ -340,6 +353,9 @@ export class MCPHub extends BaseService {
   }
 
   dispose() {
+    this.transports.forEach(t => t.close().catch(() => {}));
+    this.transports.clear();
     this.server?.close();
+    this.httpServer?.close();
   }
 }
