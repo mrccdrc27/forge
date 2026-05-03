@@ -73,17 +73,8 @@ Format: ["path/to/template", ...]`;
       const mappingResult = await this.arbitrator.executeTask({ task: mapperPrompt });
       let selectedTemplates: string[] = [];
       
-      try {
-        // More robust JSON extraction: find the first '[' and last ']'
-        const start = mappingResult.indexOf('[');
-        const end = mappingResult.lastIndexOf(']');
-        if (start !== -1 && end !== -1 && end > start) {
-          const jsonStr = mappingResult.substring(start, end + 1);
-          selectedTemplates = JSON.parse(jsonStr);
-        }
-      } catch (err) {
-        this.log(`JSON Parse failed for mapping result: ${mappingResult}`);
-      }
+      // Robust extraction of JSON array using balanced brackets
+      selectedTemplates = this.extractJSONArray(mappingResult);
 
       // Fuzzy matching fallback if LLM fails or returns garbage
       if (selectedTemplates.length === 0) {
@@ -178,6 +169,40 @@ Format: ["path/to/template", ...]`;
         fileMap[targetRelPath] = content;
       }
     }
+  }
+
+  /**
+   * Extracts a JSON array from text using balanced bracket matching.
+   */
+  private extractJSONArray(text: string): string[] {
+    const start = text.indexOf('[');
+    if (start === -1) return [];
+
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\' && inString) { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+
+      if (ch === '[') depth++;
+      else if (ch === ']') {
+        depth--;
+        if (depth === 0) {
+          try {
+            return JSON.parse(text.substring(start, i + 1));
+          } catch (err) {
+            this.log(`JSON.parse failed in extractJSONArray: ${err}`);
+            return [];
+          }
+        }
+      }
+    }
+    return [];
   }
 
   dispose(): void {

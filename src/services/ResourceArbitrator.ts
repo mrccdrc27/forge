@@ -62,16 +62,8 @@ export class ResourceArbitrator extends BaseService {
 
     const taskId = Math.random().toString(36).substring(7);
 
-    // Estimate cost (heuristic: 1 char ~= 0.25 tokens)
-    const estimatedTokens = Math.floor(request.task.length * 0.25) + 1000; // + buffer
-    
-    if (!this.sentry.hasBudget(estimatedTokens)) {
-      this._onEvent.fire({ type: 'BUDGET_EXCEEDED', payload: {} });
-      throw new Error('Gated: Insufficient Bobcoin budget for this task.');
-    }
-
-    this._onEvent.fire({ 
-      type: 'SPAWN_SUBAGENT', 
+    this._onEvent.fire({
+      type: 'SPAWN_SUBAGENT',
       payload: { id: taskId, name: model.includes('granite') ? 'Granite-8B Worker' : 'Llama-70B Planner', description: request.task.substring(0, 50) + '...' }
     });
 
@@ -83,7 +75,7 @@ export class ResourceArbitrator extends BaseService {
     try {
       const response = await this.watsonx.generate(request.task, model);
       
-      // Log actual usage
+      // Log token usage for tracking
       this.sentry.logUsage(response.usage.input_tokens, response.usage.output_tokens, response.model);
 
       this._onEvent.fire({

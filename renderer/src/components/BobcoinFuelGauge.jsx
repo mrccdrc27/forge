@@ -1,23 +1,25 @@
 import React from 'react'
 import { useForgeStore } from '../store/forge'
 
+/**
+ * Simple token counter display
+ * Shows aggregated token count from all LLM usage
+ */
 export const BobcoinFuelGauge = ({ compact = false }) => {
-  const { total, saved, limit } = useForgeStore((state) => state.bobcoins)
+  const tokenCount = useForgeStore((state) => state.tokenCount)
   
-  const percentage = Math.min((total / limit) * 100, 100)
-  const isWarning = total > limit * 0.8
-  const isCritical = total >= limit
+  // Format large numbers with commas
+  const formatNumber = (num) => {
+    return num.toLocaleString()
+  }
 
   if (compact) {
     return (
       <div
-        className={`fuel-gauge-compact ${isCritical ? 'critical' : isWarning ? 'warning' : ''}`}
-        title={`Bobcoin Usage: ${total}/${limit}${saved > 0 ? ` • Saved: ${saved}BC` : ''}`}
+        className="fuel-gauge-compact"
+        title={`Total Token Usage: ${formatNumber(tokenCount)} tokens`}
       >
-        <div className="compact-track">
-          <div className="compact-fill" style={{ width: `${percentage}%` }} />
-        </div>
-        <span className="compact-label">{total}BC</span>
+        <span className="compact-label">🪙 {formatNumber(tokenCount)}</span>
       </div>
     )
   }
@@ -25,30 +27,13 @@ export const BobcoinFuelGauge = ({ compact = false }) => {
   return (
     <div className="fuel-gauge">
       <div className="gauge-header">
-        <span className="gauge-title">Bobcoin Fuel</span>
-        <span className="gauge-stats">{total} / {limit} BC</span>
+        <span className="gauge-title">Token Usage</span>
+        <span className="gauge-stats">{formatNumber(tokenCount)} tokens</span>
       </div>
       
-      <div className="gauge-track">
-        <div
-          className={`gauge-fill ${isCritical ? 'critical' : isWarning ? 'warning' : ''}`}
-          style={{ width: `${percentage}%` }}
-        />
+      <div className="gauge-info">
+        <span className="info-label">Total LLM tokens consumed</span>
       </div>
-
-      {saved > 0 && (
-        <div className="gauge-footer">
-          <span className="saved-label">Arbitrage Savings</span>
-          <span className="saved-value">+{saved} BC</span>
-        </div>
-      )}
-
-      {isWarning && !isCritical && (
-        <div className="gauge-alert">Approaching Budget Limit</div>
-      )}
-      {isCritical && (
-        <div className="gauge-alert critical">Budget Exceeded</div>
-      )}
     </div>
   )
 }

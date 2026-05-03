@@ -124,7 +124,7 @@ export class WatsonxClient extends BaseService {
       input: prompt,
       project_id: this.projectId,
       parameters: {
-        max_new_tokens: 1000,
+        max_new_tokens: 8192,
         min_new_tokens: 0,
         stop_sequences: [],
         repetition_penalty: 1.0,
@@ -193,15 +193,39 @@ export class WatsonxClient extends BaseService {
     while (attempts < 3) {
       const response = await this.generate(structuredPrompt, model);
       try {
-        const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-        const jsonStr = jsonMatch ? jsonMatch[0] : response.content;
-        return JSON.parse(jsonStr);
+        return this.extractJSON(response.content);
       } catch (err) {
         attempts++;
         this.log(`Attempt ${attempts} failed to produce valid JSON. Retrying...`);
         if (attempts === 3) throw new Error(`Failed to generate valid JSON after 3 attempts: ${err}`);
       }
     }
+  }
+
+  /**
+   * Extracts a JSON object from text using balanced-brace matching.
+   */
+  private extractJSON(text: string): any {
+    const start = text.indexOf('{');
+    if (start === -1) throw new Error('No JSON found in response');
+
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\' && inString) { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) return JSON.parse(text.substring(start, i + 1));
+      }
+    }
+    throw new Error('Incomplete JSON object in response');
   }
 
   async verifyConnection(): Promise<{ success: boolean; message: string }> {

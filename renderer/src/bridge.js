@@ -36,14 +36,10 @@ window.addEventListener('message', (event) => {
   }
 
   if (command === 'METRICS_UPDATE' || command === 'updateSentry') {
-    if (window.forge._updateBobcoins) {
-      // Extract metrics from payload
-      const metrics = payload.cost ? {
-        total: payload.cost.actual,
-        saved: payload.cost.saved,
-        limit: payload.budget
-      } : payload;
-      window.forge._updateBobcoins(metrics);
+    if (window.forge._updateTokenCount) {
+      // Extract total token count from payload
+      const tokenCount = payload.tokens?.total || 0;
+      window.forge._updateTokenCount(tokenCount);
     }
   }
 
@@ -98,7 +94,7 @@ function callHost(command, data, timeout = 30000) {
 
 window.forge = {
   _bobStreamCallback: null,
-  _updateBobcoins: null,
+  _updateTokenCount: null,
   _spawnSubagent: null,
   _updateSubagent: null,
   _setPhase: null,

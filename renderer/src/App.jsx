@@ -6,7 +6,7 @@ import './App.css'
 
 export default function App() {
   const [isLoading, setIsLoading] = React.useState(true)
-  const updateBobcoins = useForgeStore((state) => state.updateBobcoins)
+  const updateTokenCount = useForgeStore((state) => state.updateTokenCount)
   const spawnSubagent = useForgeStore((state) => state.spawnSubagent)
   const updateSubagent = useForgeStore((state) => state.updateSubagent)
   const setPhase = useForgeStore((state) => state.setPhase)
@@ -24,13 +24,13 @@ export default function App() {
   // Bind bridge to store
   React.useEffect(() => {
     if (window.forge) {
-      window.forge._updateBobcoins = updateBobcoins
+      window.forge._updateTokenCount = updateTokenCount
       window.forge._spawnSubagent = spawnSubagent
       window.forge._updateSubagent = updateSubagent
       window.forge._setPhase = setPhase
       window.forge._ensureChatInstance = ensureChatInstance
     }
-  }, [updateBobcoins, spawnSubagent, updateSubagent, setPhase, ensureChatInstance])
+  }, [updateTokenCount, spawnSubagent, updateSubagent, setPhase, ensureChatInstance])
   
   if (isLoading || !storageInitialized) {
     return (

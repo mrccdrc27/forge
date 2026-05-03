@@ -204,13 +204,10 @@ export const useForgeStore = create((set, get) => ({
       iteration: 0,
       incrementIteration: () => set((s) => ({ iteration: s.iteration + 1 })),
 
-      // ─── Bobcoins ───────────────────────────────────────────────────────────
-      bobcoins: {
-        total: 24,
-        saved: 12,
-        limit: 40
-      },
-      updateBobcoins: (patch) => set((s) => ({ bobcoins: { ...s.bobcoins, ...patch } })),
+      // ─── Token Counter ──────────────────────────────────────────────────────
+      // Simple aggregated token count from all LLM usage
+      tokenCount: 0,
+      updateTokenCount: (count) => set({ tokenCount: count }),
 
       // ─── Error ───────────────────────────────────────────────────────────────
       error: null,

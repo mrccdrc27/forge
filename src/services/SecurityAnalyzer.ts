@@ -204,13 +204,8 @@ If no issues found, return: {"issues": []}`;
     try {
       const response = await this.arbitrator.executeTask({ task: prompt });
       
-      // Extract JSON from response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in LLM response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
+      // Extract JSON from response using balanced-brace matching
+      const parsed = this.extractJSON(response);
       
       // Build report
       const issues: SecurityIssue[] = (parsed.issues || []).map((issue: any, idx: number) => ({
@@ -308,6 +303,53 @@ Target: ${target}
 ⚠ No files found to analyze.
 
 ═══════════════════════════════════════════════════════════`;
+  }
+
+  /**
+   * Extracts a JSON object from an LLM response using balanced-brace matching.
+   * Unlike a greedy regex, this correctly isolates the first complete JSON object
+   * even when the model appends trailing prose or extra braces.
+   */
+  private extractJSON(text: string): any {
+    const start = text.indexOf('{');
+    if (start === -1) {
+      throw new Error('No JSON found in LLM response');
+    }
+
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+
+      if (escape) {
+        escape = false;
+        continue;
+      }
+
+      if (ch === '\\' && inString) {
+        escape = true;
+        continue;
+      }
+
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+
+      if (inString) continue;
+
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          return JSON.parse(text.substring(start, i + 1));
+        }
+      }
+    }
+
+    throw new Error(`Incomplete JSON object in LLM response (length: ${text.length}). Start: ${text.substring(0, 50)}... End: ...${text.substring(text.length - 50)}`);
   }
 
   dispose(): void {}
