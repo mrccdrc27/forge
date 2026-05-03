@@ -124,14 +124,10 @@ export class WatsonxClient extends BaseService {
       input: prompt,
       project_id: this.projectId,
       parameters: {
-        max_new_tokens: 8192,
+        max_new_tokens: 2048,
         min_new_tokens: 0,
         stop_sequences: [],
-        repetition_penalty: 1.0,
-        return_options: {
-          input_token_count: true,
-          generated_token_count: true
-        }
+        repetition_penalty: 1.0
       }
     };
 

@@ -129,7 +129,7 @@ export class CodeSuggestionAnalyzer extends BaseService {
     };
 
     scan(targetPath);
-    return files.slice(0, 50); // Limit to 50 files for performance
+    return files.slice(0, 15); // Limit to 15 files to prevent LLM timeouts
   }
 
   private isCodeFile(filename: string): boolean {
@@ -140,7 +140,7 @@ export class CodeSuggestionAnalyzer extends BaseService {
   private async collectCodeContext(files: string[], workspaceRoot: string): Promise<string> {
     let context = '';
     let totalChars = 0;
-    const charBudget = 15000; // Budget for code context
+    const charBudget = 8000; // Reduced budget to prevent LLM timeouts
 
     for (const file of files) {
       if (totalChars >= charBudget) break;
@@ -215,16 +215,20 @@ INSTRUCTIONS:
       "title": "Brief title",
       "file": "relative/path/to/file.ext",
       "line": 42,
-      "description": "Detailed explanation of the issue",
-      "recommendation": "How to improve it"
+      "description": "Very brief explanation",
+      "recommendation": "Very brief fix"
     }
   ]
 }
 
+CRITICAL INSTRUCTION: Return ONLY the JSON object. Keep text extremely brief. Do not add any conversational text or formatting outside the JSON array.
 If no suggestions found, return: {"suggestions": []}`;
 
     try {
-      const response = await this.arbitrator.executeTask({ task: prompt });
+      const response = await this.arbitrator.executeTask({ 
+        task: prompt,
+        forceModel: 'execution'
+      });
       
       // Extract JSON from response using balanced-brace matching
       const parsed = this.extractJSON(response);

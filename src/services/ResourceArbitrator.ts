@@ -6,6 +6,7 @@ import { ConfigManager } from './ConfigManager';
 
 export interface RouteRequest {
   task: string;
+  forceModel?: 'reasoning' | 'execution';
 }
 
 export class ResourceArbitrator extends BaseService {
@@ -57,7 +58,10 @@ export class ResourceArbitrator extends BaseService {
   }
 
   async executeTask(request: RouteRequest): Promise<any> {
-    const model = this.route(request.task);
+    const models = this.config.getConfig().watsonx.models;
+    const model = request.forceModel 
+      ? models[request.forceModel]
+      : this.route(request.task);
     this.log(`Routing task to ${model}`);
 
     const taskId = Math.random().toString(36).substring(7);
