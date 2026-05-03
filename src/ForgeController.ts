@@ -14,6 +14,8 @@ import { DocumentationEngine } from './services/DocumentationEngine';
 import { RetryAdvisor } from './services/RetryAdvisor';
 import { CleanupScanner } from './services/CleanupScanner';
 import { ForgeStorageManager } from './services/ForgeStorageManager';
+import { SecurityAnalyzer } from './services/SecurityAnalyzer';
+import { CodeSuggestionAnalyzer } from './services/CodeSuggestionAnalyzer';
 
 export class ForgeController {
   private services: Map<string, IForgeService> = new Map();
@@ -32,6 +34,8 @@ export class ForgeController {
   private documentationEngine?: DocumentationEngine;
   private retryAdvisor?: RetryAdvisor;
   private cleanupScanner?: CleanupScanner;
+  private securityAnalyzer?: SecurityAnalyzer;
+  private codeSuggestionAnalyzer?: CodeSuggestionAnalyzer;
 
   constructor(context: vscode.ExtensionContext) {
     this.sidebarProvider = new ForgeSidebarProvider(context.extensionUri);
@@ -115,8 +119,24 @@ export class ForgeController {
     this.cleanupScanner = cleanupScanner;
   }
 
+  setSecurityAnalyzer(securityAnalyzer: SecurityAnalyzer) {
+    this.securityAnalyzer = securityAnalyzer;
+  }
+
+  setCodeSuggestionAnalyzer(codeSuggestionAnalyzer: CodeSuggestionAnalyzer) {
+    this.codeSuggestionAnalyzer = codeSuggestionAnalyzer;
+  }
+
   getSentry() {
     return this.sentry;
+  }
+
+  getSecurityAnalyzer() {
+    return this.securityAnalyzer;
+  }
+
+  getCodeSuggestionAnalyzer() {
+    return this.codeSuggestionAnalyzer;
   }
 
   getWriter() {

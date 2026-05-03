@@ -17,6 +17,8 @@ import { DocumentationEngine } from "./DocumentationEngine";
 import { RetryAdvisor } from "./RetryAdvisor";
 import { CleanupScanner } from "./CleanupScanner";
 import { ContextEngine } from "./ContextEngine";
+import { SecurityAnalyzer } from "./SecurityAnalyzer";
+import { CodeSuggestionAnalyzer } from "./CodeSuggestionAnalyzer";
 import express from "express";
 
 export class MCPHub extends BaseService {
@@ -36,6 +38,8 @@ export class MCPHub extends BaseService {
   private retryAdvisor?: RetryAdvisor;
   private cleanupScanner?: CleanupScanner;
   private contextEngine?: ContextEngine;
+  private securityAnalyzer?: SecurityAnalyzer;
+  private codeSuggestionAnalyzer?: CodeSuggestionAnalyzer;
   private serverStarted: boolean = false;
 
   private _onEvent = new vscode.EventEmitter<{ type: string; payload: any }>();
@@ -115,6 +119,14 @@ export class MCPHub extends BaseService {
     this.contextEngine = contextEngine;
   }
 
+  setSecurityAnalyzer(securityAnalyzer: SecurityAnalyzer) {
+    this.securityAnalyzer = securityAnalyzer;
+  }
+
+  setCodeSuggestionAnalyzer(codeSuggestionAnalyzer: CodeSuggestionAnalyzer) {
+    this.codeSuggestionAnalyzer = codeSuggestionAnalyzer;
+  }
+
   private setupHandlers(server: Server) {
     server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
@@ -123,26 +135,28 @@ export class MCPHub extends BaseService {
           description: "Verify Forge is connected to Bob",
           inputSchema: { type: "object", properties: {} },
         },
-        {
-          name: "forge.bulk_write",
-          description: "Write multiple files to the workspace atomically",
-          inputSchema: {
-            type: "object",
-            properties: {
-              files: {
-                type: "object",
-                description: "Map of file paths to content",
-                additionalProperties: { type: "string" }
-              }
-            },
-            required: ["files"]
-          },
-        },
-        {
-          name: "forge.get_resource_metrics",
-          description: "Get current Bobcoin budget and usage metrics",
-          inputSchema: { type: "object", properties: {} },
-        },
+        // RETIRED: forge.bulk_write
+        // {
+        //   name: "forge.bulk_write",
+        //   description: "Write multiple files to the workspace atomically",
+        //   inputSchema: {
+        //     type: "object",
+        //     properties: {
+        //       files: {
+        //         type: "object",
+        //         description: "Map of file paths to content",
+        //         additionalProperties: { type: "string" }
+        //       }
+        //     },
+        //     required: ["files"]
+        //   },
+        // },
+        // RETIRED: forge.get_resource_metrics
+        // {
+        //   name: "forge.get_resource_metrics",
+        //   description: "Get current Bobcoin budget and usage metrics",
+        //   inputSchema: { type: "object", properties: {} },
+        // },
         {
           name: "forge.scaffold",
           description: "Intelligently identifies and retrieves the best-fit scaffolding templates (folder structure + seed files) from the library based on requirements.",
@@ -163,20 +177,21 @@ export class MCPHub extends BaseService {
             required: ["task"]
           }
         },
-        {
-          name: "forge.build",
-          description: "Scaffold a complete project from scratch: generates the folder structure, boilerplate files, and configuration based on a plain-language description. Writes everything to disk atomically.",
-          inputSchema: {
-            type: "object",
-            properties: {
-              name: { type: "string", description: "Project/module name (used for folder naming and package names)" },
-              type: { type: "string", description: "Stack type hint (e.g. 'react-vite', 'express', 'fastapi', 'python-cli'). Use 'auto' to let Forge detect the best fit." },
-              description: { type: "string", description: "Plain-language description of what the project does and any specific requirements" },
-              targetPath: { type: "string", description: "Optional subfolder path relative to workspace root (default: './<name>')" }
-            },
-            required: ["name", "description"]
-          }
-        },
+        // RETIRED: forge.build
+        // {
+        //   name: "forge.build",
+        //   description: "Scaffold a complete project from scratch: generates the folder structure, boilerplate files, and configuration based on a plain-language description. Writes everything to disk atomically.",
+        //   inputSchema: {
+        //     type: "object",
+        //     properties: {
+        //       name: { type: "string", description: "Project/module name (used for folder naming and package names)" },
+        //       type: { type: "string", description: "Stack type hint (e.g. 'react-vite', 'express', 'fastapi', 'python-cli'). Use 'auto' to let Forge detect the best fit." },
+        //       description: { type: "string", description: "Plain-language description of what the project does and any specific requirements" },
+        //       targetPath: { type: "string", description: "Optional subfolder path relative to workspace root (default: './<name>')" }
+        //     },
+        //     required: ["name", "description"]
+        //   }
+        // },
         {
           name: "forge.analyze_codebase",
           description: "Scans the workspace and returns an LLM-narrated architectural summary to answer a specific question about the codebase.",
@@ -243,6 +258,34 @@ export class MCPHub extends BaseService {
             },
             required: ["filePaths"]
           }
+        },
+        {
+          name: "forge.security_analysis",
+          description: "Performs a comprehensive security audit on the specified target (file, directory, or 'diff' for git changes). Returns a detailed report of security vulnerabilities organized by severity.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              target: {
+                type: "string",
+                description: "Path to file/directory to analyze, or 'diff' to analyze recent git changes"
+              }
+            },
+            required: ["target"]
+          }
+        },
+        {
+          name: "forge.code_suggestions",
+          description: "Analyzes code and provides actionable suggestions across four categories: Code Quality, Best Practices, Architecture, and Performance. Returns a structured report with specific recommendations.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              target: {
+                type: "string",
+                description: "Path to file/directory to analyze, or 'diff' to analyze recent git changes"
+              }
+            },
+            required: ["target"]
+          }
         }
       ],
     }));
@@ -288,20 +331,22 @@ export class MCPHub extends BaseService {
             break;
           }
 
-          case "forge.bulk_write": {
-            if (!this.writer) throw new Error("AtomicWriter not initialized");
-            const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath || ".";
-            await this.writer.bulkWrite(workspaceRoot, (args as any).files);
-            response = { content: [{ type: "text", text: `Successfully wrote ${Object.keys((args as any).files).length} files.` }] };
-            break;
-          }
+          // RETIRED: forge.bulk_write
+          // case "forge.bulk_write": {
+          //   if (!this.writer) throw new Error("AtomicWriter not initialized");
+          //   const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath || ".";
+          //   await this.writer.bulkWrite(workspaceRoot, (args as any).files);
+          //   response = { content: [{ type: "text", text: `Successfully wrote ${Object.keys((args as any).files).length} files.` }] };
+          //   break;
+          // }
 
-          case "forge.get_resource_metrics": {
-            if (!this.sentry) throw new Error("ResourceSentry not initialized");
-            const metrics = this.sentry.getSentryData();
-            response = { content: [{ type: "text", text: JSON.stringify(metrics, null, 2) }] };
-            break;
-          }
+          // RETIRED: forge.get_resource_metrics
+          // case "forge.get_resource_metrics": {
+          //   if (!this.sentry) throw new Error("ResourceSentry not initialized");
+          //   const metrics = this.sentry.getSentryData();
+          //   response = { content: [{ type: "text", text: JSON.stringify(metrics, null, 2) }] };
+          //   break;
+          // }
 
           case "forge.scaffold": {
             if (!this.buildEngine) throw new Error("BuildEngine not initialized");
@@ -326,13 +371,14 @@ export class MCPHub extends BaseService {
             break;
           }
 
-          case "forge.build": {
-            if (!this.buildEngine) throw new Error("BuildEngine not initialized");
-            const { name, type = 'auto', description, targetPath } = args as any;
-            const result = await this.buildEngine.build({ name, type, description, targetPath });
-            response = { content: [{ type: "text", text: result.summary }] };
-            break;
-          }
+          // RETIRED: forge.build
+          // case "forge.build": {
+          //   if (!this.buildEngine) throw new Error("BuildEngine not initialized");
+          //   const { name, type = 'auto', description, targetPath } = args as any;
+          //   const result = await this.buildEngine.build({ name, type, description, targetPath });
+          //   response = { content: [{ type: "text", text: result.summary }] };
+          //   break;
+          // }
 
           case "forge.analyze_codebase": {
             if (!this.codebaseAnalyzer) throw new Error("CodebaseAnalyzer not initialized");
@@ -370,6 +416,20 @@ export class MCPHub extends BaseService {
             break;
           }
 
+          case "forge.security_analysis": {
+            if (!this.securityAnalyzer) throw new Error("SecurityAnalyzer not initialized");
+            const result = await this.securityAnalyzer.analyze((args as any).target);
+            response = { content: [{ type: "text", text: result }] };
+            break;
+          }
+
+          case "forge.code_suggestions": {
+            if (!this.codeSuggestionAnalyzer) throw new Error("CodeSuggestionAnalyzer not initialized");
+            const result = await this.codeSuggestionAnalyzer.analyze((args as any).target);
+            response = { content: [{ type: "text", text: result }] };
+            break;
+          }
+
           default:
             throw new Error(`Tool not found: ${name}`);
         }
@@ -391,7 +451,7 @@ export class MCPHub extends BaseService {
       const port = serverConfig?.port || 3000;
       const host = serverConfig?.host || 'localhost';
 
-      // CORS middleware
+      // CORS middleware - must come before routes
       this.app.use((req, res, next) => {
         res.header('Access-Control-Allow-Origin', '*');
         res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -447,16 +507,15 @@ export class MCPHub extends BaseService {
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           this.log(`SSE connection error: ${errorMsg}`);
+          // Don't try to send JSON response - SSE connection may be partially established
+          // Just end the response cleanly
           if (!res.headersSent) {
-            res.status(500).json({
-              error: 'SSE initialization failed',
-              details: errorMsg
-            });
+            res.status(500).end();
           }
         }
       });
 
-      this.app.post("/messages", async (req: express.Request, res: express.Response) => {
+      this.app.post("/messages", express.json(), async (req: express.Request, res: express.Response) => {
         try {
           // Route by sessionId query param that the SDK appends to the endpoint URL
           const sessionId = (req.query as any).sessionId as string | undefined;
@@ -465,20 +524,34 @@ export class MCPHub extends BaseService {
           if (!transport) {
             const ids = Array.from(this.transports.keys()).join(', ') || 'none';
             this.log(`Message for unknown session '${sessionId}'. Active sessions: ${ids}`);
-            res.status(503).json({
-              error: 'No SSE session found.',
-              hint: 'Connect to /sse first. Ensure the sessionId query param matches.'
-            });
+            
+            // Check if this is an MCP client expecting JSON-RPC response
+            if (!res.headersSent) {
+              res.status(200).json({
+                jsonrpc: "2.0",
+                error: {
+                  code: -32000,
+                  message: 'No SSE session found. Connect to /sse first.'
+                },
+                id: null
+              });
+            }
             return;
           }
-          await transport.handlePostMessage(req, res);
+          await transport.handlePostMessage(req, res, req.body);
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           this.log(`Message handling error: ${errorMsg}`);
           if (!res.headersSent) {
-            res.status(500).json({
-              error: 'Message handling failed',
-              details: errorMsg
+            // Return proper JSON-RPC error format
+            res.status(200).json({
+              jsonrpc: "2.0",
+              error: {
+                code: -32603,
+                message: 'Internal error',
+                data: errorMsg
+              },
+              id: null
             });
           }
         }

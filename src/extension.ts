@@ -15,6 +15,8 @@ import { DependencyAdvisor } from './services/DependencyAdvisor';
 import { DocumentationEngine } from './services/DocumentationEngine';
 import { RetryAdvisor } from './services/RetryAdvisor';
 import { CleanupScanner } from './services/CleanupScanner';
+import { SecurityAnalyzer } from './services/SecurityAnalyzer';
+import { CodeSuggestionAnalyzer } from './services/CodeSuggestionAnalyzer';
 
 let controller: ForgeController;
 
@@ -92,6 +94,14 @@ export async function activate(context: vscode.ExtensionContext) {
   await controller.registerService(cleanupScanner);
   controller.setCleanupScanner(cleanupScanner);
 
+  const securityAnalyzer = new SecurityAnalyzer(output, arbitrator, config);
+  await controller.registerService(securityAnalyzer);
+  controller.setSecurityAnalyzer(securityAnalyzer);
+
+  const codeSuggestionAnalyzer = new CodeSuggestionAnalyzer(output, arbitrator, config);
+  await controller.registerService(codeSuggestionAnalyzer);
+  controller.setCodeSuggestionAnalyzer(codeSuggestionAnalyzer);
+
   // Initialize MCPHub but don't start server yet
   const mcpHub = new MCPHub('mcp-hub', output);
   await controller.registerService(mcpHub);
@@ -108,6 +118,8 @@ export async function activate(context: vscode.ExtensionContext) {
   mcpHub.setRetryAdvisor(retryAdvisor);
   mcpHub.setCleanupScanner(cleanupScanner);
   mcpHub.setContextEngine(contextEngine);
+  mcpHub.setSecurityAnalyzer(securityAnalyzer);
+  mcpHub.setCodeSuggestionAnalyzer(codeSuggestionAnalyzer);
   
   // Now start the MCP server with all dependencies ready
   try {
