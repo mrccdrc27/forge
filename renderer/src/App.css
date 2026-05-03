@@ -55,6 +55,12 @@ body {
   border-radius: var(--radius-md);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
 .header h1 {
   color: var(--accent-cyan);
   font-size: 1.25rem;
@@ -644,32 +650,111 @@ input[type="text"]::placeholder {
   gap: var(--spacing-lg);
 }
 
-/* Configuration Section */
-.config-section {
+/* Settings Toggle Button */
+.settings-toggle-button {
+  background: var(--bg-dark);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 32px;
+}
+
+.settings-toggle-button:hover {
+  background: var(--card-bg);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+
+.settings-toggle-button:active {
+  transform: translateY(0);
+}
+
+/* Settings Page */
+.settings-page {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: var(--spacing-xs);
+  min-height: 0;
+}
+
+.settings-page::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-page::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-page::-webkit-scrollbar-thumb {
+  background: var(--border-accent);
+  border-radius: var(--radius-sm);
+}
+
+.settings-page::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+.settings-header {
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.settings-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0 0 var(--spacing-sm) 0;
+  letter-spacing: -0.02em;
+}
+
+.settings-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.settings-section {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-xl);
   margin-bottom: var(--spacing-lg);
 }
 
-.config-section h3 {
-  font-size: 0.85rem;
+.settings-section-title {
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-main);
-  margin: 0 0 var(--spacing-md) 0;
+  margin: 0 0 var(--spacing-sm) 0;
   letter-spacing: -0.01em;
 }
 
-.config-buttons {
+.settings-section-description {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin: 0 0 var(--spacing-lg) 0;
+  line-height: 1.6;
+}
+
+.settings-actions {
   display: flex;
   gap: var(--spacing-md);
   flex-wrap: wrap;
 }
 
-.config-button {
+.settings-button {
   flex: 1;
-  min-width: 140px;
+  min-width: 160px;
   background: var(--bg-dark);
   color: var(--text-main);
   border: 1px solid var(--border-color);
@@ -677,44 +762,71 @@ input[type="text"]::placeholder {
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   letter-spacing: -0.01em;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
 }
 
-.config-button:hover {
-  background: var(--card-bg);
+.settings-button .button-icon {
+  font-size: 1.1rem;
+}
+
+.settings-button .button-text {
+  flex: 1;
+  text-align: center;
+}
+
+.settings-button.primary {
   border-color: var(--accent-cyan);
   color: var(--accent-cyan);
+}
+
+.settings-button.primary:hover {
+  background: rgba(0, 242, 254, 0.1);
+  border-color: var(--accent-cyan);
   transform: translateY(-1px);
 }
 
-.config-button:active {
+.settings-button.secondary {
+  border-color: var(--success-color);
+  color: var(--success-color);
+}
+
+.settings-button.secondary:hover {
+  background: rgba(0, 255, 136, 0.05);
+  border-color: var(--success-color);
+  transform: translateY(-1px);
+}
+
+.settings-button:active {
   transform: translateY(0);
 }
 
-.config-button.verify {
-  border-color: var(--success-color);
-  color: var(--success-color);
-}
-
-.config-button.verify:hover {
-  background: rgba(0, 255, 136, 0.05);
-  border-color: var(--success-color);
-  color: var(--success-color);
+@media (max-width: 768px) {
+  .settings-header h2 {
+    font-size: 1.25rem;
+  }
+  
+  .settings-section {
+    padding: var(--spacing-lg);
+  }
 }
 
 @media (max-width: 480px) {
-  .config-buttons {
+  .settings-actions {
     flex-direction: column;
   }
   
-  .config-button {
+  .settings-button {
     min-width: 100%;
+  }
+  
+  .header-actions {
+    gap: var(--spacing-sm);
   }
 }
 

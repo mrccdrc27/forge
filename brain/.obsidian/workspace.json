@@ -181,6 +181,7 @@
   },
   "active": "143965710e5c3d86",
   "lastOpenFiles": [
+    "core/build/analyzer-optimizations-f3e2.md",
     "core/build/json-extraction-robustness-d4e1.md",
     "core/build/build-project-fix-lint-b2c3.md",
     "core/build/mcp-sse-bridge-c9d2.md",
@@ -206,7 +207,6 @@
     "core/build/final-resource-arbitrage-7d9a.md",
     "core/build/arbitrage-logic-and-watsonx-live-f1a2.md",
     "core/build/accomplishment-report-2026-05-02.md",
-    "core/build/status-report.md",
     "core/tasks",
     "core/build",
     "core/answers",

@@ -2,10 +2,13 @@ import React from 'react'
 import { useForgeStore } from './store/forge'
 import { BobcoinFuelGauge } from './components/BobcoinFuelGauge'
 import { ActivityStream } from './components/ActivityStream'
+import { SettingsPage } from './components/SettingsPage'
 import './App.css'
 
 export default function App() {
   const [isLoading, setIsLoading] = React.useState(true)
+  const currentView = useForgeStore((state) => state.currentView)
+  const setCurrentView = useForgeStore((state) => state.setCurrentView)
   const updateTokenCount = useForgeStore((state) => state.updateTokenCount)
   const spawnSubagent = useForgeStore((state) => state.spawnSubagent)
   const updateSubagent = useForgeStore((state) => state.updateSubagent)
@@ -43,46 +46,31 @@ export default function App() {
     )
   }
 
-  const handleConfigureWatsonx = () => {
-    if (window.forge) {
-      window.forge.executeCommand('forge.configureWatsonx')
-    }
-  }
-
-  const handleVerifyWatsonx = () => {
-    if (window.forge) {
-      window.forge.executeCommand('forge.verifyWatsonx')
-    }
+  const toggleSettings = () => {
+    setCurrentView(currentView === 'main' ? 'settings' : 'main')
   }
 
   return (
     <div className="page">
       <div className="header">
         <h1>⬡ Forge</h1>
-        <BobcoinFuelGauge compact />
-      </div>
-      
-      <div className="config-section">
-        <h3>⚙️ Configuration</h3>
-        <div className="config-buttons">
+        <div className="header-actions">
+          <BobcoinFuelGauge compact />
           <button
-            className="config-button"
-            onClick={handleConfigureWatsonx}
-            title="Configure IBM Watsonx API credentials"
+            className="settings-toggle-button"
+            onClick={toggleSettings}
+            title={currentView === 'main' ? 'Open Settings' : 'Back to Main'}
           >
-            🔑 Configure Watsonx
-          </button>
-          <button
-            className="config-button verify"
-            onClick={handleVerifyWatsonx}
-            title="Test your Watsonx connection"
-          >
-            ✓ Verify Connection
+            {currentView === 'main' ? '⚙️' : '←'}
           </button>
         </div>
       </div>
       
-      <ActivityStream />
+      {currentView === 'main' ? (
+        <ActivityStream />
+      ) : (
+        <SettingsPage />
+      )}
     </div>
   )
 }

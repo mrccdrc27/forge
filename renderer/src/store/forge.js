@@ -41,6 +41,10 @@ const fileStorage = {
  */
 
 export const useForgeStore = create((set, get) => ({
+      // ─── View State ──────────────────────────────────────────────────────────
+      currentView: 'main', // main | settings
+      setCurrentView: (view) => set({ currentView: view }),
+
       // ─── Phase ───────────────────────────────────────────────────────────────
       phase: 'idle', // idle | selecting | planning | building | verifying | done | error
       setPhase: (phase) => set({ phase }),
