@@ -34,25 +34,19 @@ export default function App() {
   
   if (isLoading || !storageInitialized) {
     return (
-      <div className="page" style={{
-        height: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        color: '#888'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '2em', marginBottom: '10px' }}>🔨</div>
-          <div>Loading Forge...</div>
+      <div className="loading-container">
+        <div className="loading-content">
+          <div className="loading-icon">🔨</div>
+          <div className="loading-text">Loading Forge...</div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="page" style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1 style={{ color: '#00f2fe', fontSize: '1.5rem', margin: 0 }}>⬡ Forge</h1>
+    <div className="page">
+      <div className="header">
+        <h1>⬡ Forge</h1>
         <BobcoinFuelGauge compact />
       </div>
       

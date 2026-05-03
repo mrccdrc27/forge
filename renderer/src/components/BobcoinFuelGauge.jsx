@@ -10,7 +10,10 @@ export const BobcoinFuelGauge = ({ compact = false }) => {
 
   if (compact) {
     return (
-      <div className={`fuel-gauge-compact ${isCritical ? 'critical' : isWarning ? 'warning' : ''}`} title={`Bobcoin Usage: ${total}/${limit}`}>
+      <div
+        className={`fuel-gauge-compact ${isCritical ? 'critical' : isWarning ? 'warning' : ''}`}
+        title={`Bobcoin Usage: ${total}/${limit}${saved > 0 ? ` • Saved: ${saved}BC` : ''}`}
+      >
         <div className="compact-track">
           <div className="compact-fill" style={{ width: `${percentage}%` }} />
         </div>
@@ -27,19 +30,25 @@ export const BobcoinFuelGauge = ({ compact = false }) => {
       </div>
       
       <div className="gauge-track">
-        <div 
+        <div
           className={`gauge-fill ${isCritical ? 'critical' : isWarning ? 'warning' : ''}`}
           style={{ width: `${percentage}%` }}
         />
       </div>
 
-      <div className="gauge-footer">
-        <span className="saved-label">Arbitrage Savings:</span>
-        <span className="saved-value">+{saved} BC</span>
-      </div>
+      {saved > 0 && (
+        <div className="gauge-footer">
+          <span className="saved-label">Arbitrage Savings</span>
+          <span className="saved-value">+{saved} BC</span>
+        </div>
+      )}
 
-      {isWarning && !isCritical && <div className="gauge-alert">Approaching Budget Limit!</div>}
-      {isCritical && <div className="gauge-alert critical">BUDGET EXCEEDED!</div>}
+      {isWarning && !isCritical && (
+        <div className="gauge-alert">Approaching Budget Limit</div>
+      )}
+      {isCritical && (
+        <div className="gauge-alert critical">Budget Exceeded</div>
+      )}
     </div>
   )
 }

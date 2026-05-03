@@ -40,9 +40,7 @@ const fileStorage = {
  * idle → selecting → planning → building → verifying → done
  */
 
-export const useForgeStore = create(
-  persist(
-    (set, get) => ({
+export const useForgeStore = create((set, get) => ({
       // ─── Phase ───────────────────────────────────────────────────────────────
       phase: 'idle', // idle | selecting | planning | building | verifying | done | error
       setPhase: (phase) => set({ phase }),
@@ -80,8 +78,8 @@ export const useForgeStore = create(
         const data = await fileStorage.loadInitialState();
         if (data) {
           set({
-            chatInstances: data.chatInstances || [],
-            currentChatInstanceId: data.currentChatInstanceId || null,
+            chatInstances: data.instances || [],
+            currentChatInstanceId: data.currentInstanceId || null,
             storageInitialized: true
           });
         } else {
@@ -245,5 +243,4 @@ export const useForgeStore = create(
         setTimeout(() => fileStorage.saveState([], null), 0);
       }
     })
-  )
 )

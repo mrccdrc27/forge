@@ -33,7 +33,7 @@ export class BuildEngine extends BaseService {
   }
 
   async init(): Promise<void> {
-    this.log('Build Engine initialized.');
+    this.log('Build Engine initialized with Template Library support.');
   }
 
   async build(request: BuildRequest): Promise<BuildResult> {
@@ -44,149 +44,138 @@ export class BuildEngine extends BaseService {
         ? (path.isAbsolute(requestedTargetPath) ? requestedTargetPath : path.join(workspaceRoot, requestedTargetPath))
         : path.join(workspaceRoot, name);
 
-      // Validate absolute paths if not allowed
-      const buildConfig = this.config.getConfig().build;
-      if (path.isAbsolute(targetPath) && !buildConfig?.allowAbsolutePaths && !targetPath.startsWith(workspaceRoot)) {
-        throw new Error(`Absolute paths outside workspace are not allowed: ${targetPath}`);
+      const templatesDir = path.join(workspaceRoot, 'templates');
+      this.log(`Scaffolding "${name}" using library at ${templatesDir}`);
+
+      const availableTemplates = this.getAvailableTemplates(templatesDir);
+      this.log(`Library discovery: ${availableTemplates.length} templates found.`);
+      if (availableTemplates.length === 0) {
+        throw new Error(`Template library is empty or missing at ${templatesDir}`);
       }
 
-      this.log(`Starting build for "${name}" (type: ${type}) in ${targetPath}`);
+      const mapperPrompt = `You are a Senior Project Architect.
+Library of available scaffolding templates:
+${availableTemplates.map(t => `- ${t}`).join('\n')}
 
-      // Load template if exists
-      let files: { [key: string]: string } = {};
-      const templatePath = path.join(__dirname, '..', 'templates', `${type}.json`);
-      if (fs.existsSync(templatePath)) {
-        const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
-        for (const [filePath, content] of Object.entries(template.files as { [key: string]: string })) {
-          files[filePath] = content.replace(/{{name}}/g, name).replace(/{{description}}/g, description);
-        }
-        this.log(`Loaded template: ${type}`);
-      } else {
-        const genericPath = path.join(__dirname, '..', 'templates', 'generic.json');
-        if (fs.existsSync(genericPath)) {
-          const template = JSON.parse(fs.readFileSync(genericPath, 'utf8'));
-          for (const [filePath, content] of Object.entries(template.files as { [key: string]: string })) {
-            files[filePath] = content.replace(/{{name}}/g, name).replace(/{{description}}/g, description);
-          }
-        }
-      }
+User Requirements: "${description}"
+Type Hint: "${type}"
 
-      // Phase 1: Planning (Llama-70B)
-      const architectPrompt = `You are a Senior Project Architect. Your task is to plan the file structure for a new project.
-Project Name: ${name}
-Type: ${type}
-Description: ${description}
-Existing Files (from template): ${Object.keys(files).join(', ')}
+Your task: Match the requirements to the most appropriate template(s) in the library.
+- If it's a fullstack request (e.g. "React + FastAPI"), return an array with BOTH templates: ["react/vite", "python/fastapi"].
+- If it's a single framework request, return a single-item array.
+- If multiple frameworks are requested but one is a subset or superseded by another, pick the most specific one.
+- Return ONLY the JSON array. No explanations.
 
-Provide a structured JSON list of files that should be created or updated. 
-For each file, provide the relative path and a brief "intent" description of what the file should contain.
-Be concise but thorough. Ensure the structure follows industry best practices for the given stack.
+Format: ["path/to/template", ...]`;
 
-CRITICAL: Return ONLY a valid JSON object. Do not include any conversational text before or after the JSON.
-Format:
-{
-  "blueprint": [
-    { "path": "src/index.ts", "intent": "Entry point with basic setup" }
-  ]
-}`;
-
-      const blueprintResult = await this.arbitrator.executeTask({ task: architectPrompt });
-      let blueprint: { path: string, intent: string }[] = [];
+      this.log(`Mapping requirements to library...`);
+      const mappingResult = await this.arbitrator.executeTask({ task: mapperPrompt });
+      let selectedTemplates: string[] = [];
       
       try {
-        this.log(`Received architect response. Attempting to parse blueprint...`);
-        
-        // Attempt to extract JSON from markdown code blocks first
-        let jsonStr = '';
-        const codeBlockMatch = blueprintResult.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-        
-        if (codeBlockMatch) {
-          jsonStr = codeBlockMatch[1];
-        } else {
-          // Fallback to searching for the first { and last }
-          const firstBrace = blueprintResult.indexOf('{');
-          const lastBrace = blueprintResult.lastIndexOf('}');
-          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-            jsonStr = blueprintResult.substring(firstBrace, lastBrace + 1);
-          }
+        // More robust JSON extraction: find the first '[' and last ']'
+        const start = mappingResult.indexOf('[');
+        const end = mappingResult.lastIndexOf(']');
+        if (start !== -1 && end !== -1 && end > start) {
+          const jsonStr = mappingResult.substring(start, end + 1);
+          selectedTemplates = JSON.parse(jsonStr);
         }
+      } catch (err) {
+        this.log(`JSON Parse failed for mapping result: ${mappingResult}`);
+      }
 
-        if (jsonStr) {
-          const parsed = JSON.parse(jsonStr);
-          
-          if (Array.isArray(parsed)) {
-            blueprint = parsed;
-          } else if (parsed.blueprint && Array.isArray(parsed.blueprint)) {
-            blueprint = parsed.blueprint;
-          } else if (parsed.files && Array.isArray(parsed.files)) {
-            blueprint = parsed.files;
-          } else {
-            // Find the first array property
-            const firstArray = Object.values(parsed).find(val => Array.isArray(val));
-            blueprint = (firstArray as any[]) || [];
-          }
-          
-          if (!Array.isArray(blueprint) || blueprint.length === 0) {
-            throw new Error("Parsed JSON does not contain a valid array of files (blueprint is empty)");
-          }
-        } else {
-          this.log(`FAILED TO FIND JSON IN RESPONSE: ${blueprintResult}`);
-          throw new Error("Could not find a valid JSON object in architect response");
-        }
-      } catch (err: any) {
-        this.log(`PARSE ERROR: ${err.message}`);
-        this.log(`RAW ARCHITECT OUTPUT: ${blueprintResult}`);
-        
-        this._onEvent.fire({
-          type: 'UPDATE_SUBAGENT',
-          payload: { 
-            id: 'architect-phase', 
-            patch: { status: 'failed', error: `Parsing failed: ${err.message}. Check Forge output logs for details.` } 
-          }
+      // Fuzzy matching fallback if LLM fails or returns garbage
+      if (selectedTemplates.length === 0) {
+        this.log(`LLM mapping failed. Attempting fuzzy fallback...`);
+        const lowerDesc = description.toLowerCase();
+        selectedTemplates = availableTemplates.filter(t => {
+          const parts = t.toLowerCase().split('/');
+          return parts.some(p => lowerDesc.includes(p));
         });
-        
-        throw new Error(`Failed to generate project blueprint: ${err.message}`);
       }
 
-      // Cap files for safety
-      const maxFiles = buildConfig?.maxFilesPerBuild || 50;
-      if (blueprint.length > maxFiles) {
-        this.log(`Blueprint too large (${blueprint.length} files). Capping to ${maxFiles}.`);
-        blueprint = blueprint.slice(0, maxFiles);
+      // Final validation: Ensure selected templates actually exist in our available list
+      selectedTemplates = selectedTemplates.filter(t => availableTemplates.includes(t));
+
+      if (selectedTemplates.length === 0) {
+        throw new Error(`No matching templates found for: ${description}`);
       }
 
-      // Phase 2: Generation (Granite-8B)
-      this.log(`Phase 2: Generating ${blueprint.length} files...`);
-      const generationPromises = blueprint.map(async (file) => {
-        const genPrompt = `You are a Senior Software Engineer. Generate the source code for the following file based on the project context.
-Project Name: ${name}
-Description: ${description}
-File Path: ${file.path}
-Intent: ${file.intent}
+      this.log(`Selected templates: ${selectedTemplates.join(', ')}`);
 
-Return ONLY the raw source code for this file. No markdown, no explanations.`;
+      // Phase 2: File Gathering
+      const filesToWrite: { [key: string]: string } = {};
+      
+      for (const template of selectedTemplates) {
+        const templatePath = path.join(templatesDir, template);
+        if (!fs.existsSync(templatePath)) continue;
 
-        const content = await this.arbitrator.executeTask({ task: genPrompt });
-        return { path: file.path, content };
-      });
+        // Determine subfolder (frontend/backend) if multiple templates
+        let subFolder = "";
+        if (selectedTemplates.length > 1) {
+          if (template.includes('react') || template.includes('vite') || template.includes('next')) {
+            subFolder = "frontend";
+          } else if (template.includes('python') || template.includes('node') || template.includes('express')) {
+            subFolder = "backend";
+          } else {
+            subFolder = template.split('/').pop() || template;
+          }
+        }
 
-      const generatedFiles = await Promise.all(generationPromises);
-      for (const file of generatedFiles) {
-        files[file.path] = file.content;
+        this.gatherFiles(templatePath, "", filesToWrite, subFolder);
       }
 
-      // Final Write
-      this.log(`Writing ${Object.keys(files).length} files to disk...`);
-      await this.writer.bulkWrite(targetPath, files);
+      // Phase 3: Final Write
+      this.log(`Writing ${Object.keys(filesToWrite).length} files to disk...`);
+      await this.writer.bulkWrite(targetPath, filesToWrite);
 
       return {
-        summary: `Successfully built ${name} with ${Object.keys(files).length} files at ${targetPath}`,
-        fileCount: Object.keys(files).length,
+        summary: `Successfully scaffolded ${name} using [${selectedTemplates.join(', ')}] at ${targetPath}`,
+        fileCount: Object.keys(filesToWrite).length,
         targetPath
       };
     } catch (err: any) {
       this.log(`BUILD ERROR: ${err.message}`);
       throw err;
+    }
+  }
+
+  private getAvailableTemplates(baseDir: string, currentRel = ""): string[] {
+    const templates: string[] = [];
+    if (!fs.existsSync(baseDir)) return [];
+
+    const entries = fs.readdirSync(baseDir, { withFileTypes: true });
+    
+    // If it contains a seed file, it's a template
+    const hasSeed = entries.some(e => e.name.startsWith('seed.'));
+    if (hasSeed) {
+      return [currentRel];
+    }
+
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const subTemplates = this.getAvailableTemplates(
+          path.join(baseDir, entry.name),
+          currentRel ? `${currentRel}/${entry.name}` : entry.name
+        );
+        templates.push(...subTemplates);
+      }
+    }
+    return templates;
+  }
+
+  private gatherFiles(srcDir: string, relPath: string, fileMap: { [key: string]: string }, subFolder: string) {
+    const entries = fs.readdirSync(srcDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const entryRelPath = relPath ? path.join(relPath, entry.name) : entry.name;
+      const targetRelPath = subFolder ? path.join(subFolder, entryRelPath) : entryRelPath;
+      
+      if (entry.isDirectory()) {
+        this.gatherFiles(path.join(srcDir, entry.name), entryRelPath, fileMap, subFolder);
+      } else {
+        const content = fs.readFileSync(path.join(srcDir, entry.name), 'utf8');
+        fileMap[targetRelPath] = content;
+      }
     }
   }
 
