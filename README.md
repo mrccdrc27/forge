@@ -1,99 +1,91 @@
-# ⬡ Forge
+# ⬡ Forge: The Universal Sidecar for AI Orchestration
 
-> Describe what you want to build. Bob plans it. Watson builds it.
+**Less context. Less cost. More focus.**
 
----
-
-## Architecture
-
-```
-Forge (Electron Desktop App)
-├── Bob Shell         — planning + verification (non-interactive, cheap calls)
-├── Watsonx Orchestrate — subagent execution (boilerplate, tests, push)
-└── Cloudant / Code Engine — storage + runtime (IBM Cloud provisioned)
-```
-
-### The loop
-
-```
-User prompt
-  → Bob: master plan (structured JSON, one call)
-  → Orchestrate: spawn one agent per task (parallel)
-  → Bob: verify outputs (one call, reads summaries not full files)
-  → Retry failed tasks (max 3 iterations)
-  → Done
-```
-
-Bob is used **twice per iteration** — plan and verify. It never reads the full codebase.
-Orchestrate does the volume work.
+Forge is a **VS Code Extension** and **Model Context Protocol (MCP)** server that sits between IBM Bob and his workload — intercepting tasks, routing them intelligently, and keeping Bob's context lean.
 
 ---
 
-## Setup
+## 🚀 Why Forge?
+
+IBM Bob is powerful, but power is expensive. Every routine task—boilerplate, unit tests, documentation—inflates the context window and burns **Bobcoin**. Forge stops that waste through **Resource Arbitrage**.
+
+### Key Pillars:
+- **Resource Arbitrage:** Automatically routes "low-reasoning" tasks to specialized models on **IBM watsonx.ai**, reserving Bob for high-level architectural decisions.
+- **Context Management:** Keeps the workspace lean by distilling context, preventing the "Context Tax" that leads to hallucinations and inefficiency.
+- **Bobcoin Efficiency:** Live "Fuel Gauge" tracks your budget, delivering up to **5x output per Bobcoin**.
+
+---
+
+## 🛠 Architecture
+
+Forge operates as a sidecar via the Model Context Protocol (MCP), allowing Bob to delegate tasks without losing oversight.
+
+```mermaid
+graph TD
+    User[User Prompt] --> Extension[Forge VS Code Extension]
+    Extension --> MCP[MCP Server / Tool Interceptor]
+    MCP --> Arbitrage{Resource Arbitrage}
+    Arbitrage -- "High Reasoning" --> Bob[IBM Bob / Premium Model]
+    Arbitrage -- "Boilerplate / Tests / Docs" --> Watson[IBM watsonx.ai / Optimized Models]
+    Bob --> Workspace[Workspace Update]
+    Watson --> Workspace
+```
+
+---
+
+## 📦 Features
+
+- **Forge Control Sidebar:** A dedicated VS Code view to monitor active tasks, agent status, and budget.
+- **Bobcoin Fuel Gauge:** Real-time visual tracking of AI compute spending.
+- **MCP Tool Suite:** Provides Bob with specialized tools for scaffolding, security analysis, and code construction that run on optimized infrastructure.
+- **Template Library:** Instant scaffolding for React, Python, and more via `forge.scaffold`.
+
+---
+
+## ⚙️ Setup
 
 ### Prerequisites
+- VS Code 1.85+
 - Node.js 20+
-- Bob Shell installed and authenticated (`bob --version`)
-- IBM Cloud account with Watsonx Orchestrate access
+- IBM watsonx.ai API Key & Project ID
 
-### Environment variables
-Create a `.env` file in the root:
+### Installation
+1. Clone the repository.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Build the extension and renderer:
+   ```bash
+   npm run compile
+   ```
+4. Press `F5` in VS Code to launch the **Extension Development Host**.
 
-```
-WATSON_API_KEY=your_orchestrate_api_key
-WATSON_INSTANCE_URL=https://your-orchestrate-instance.ibm.com
-```
-
-### Install
-
-```bash
-# Root dependencies (Electron)
-npm install
-
-# Renderer dependencies (React + Vite)
-cd renderer && npm install && cd ..
-```
-
-### Run in dev
-
-```bash
-npm run dev
-```
+### Configuration
+Set your credentials in VS Code Settings (`Ctrl+,`) or via the Forge Sidebar:
+- `forge.watsonx.apiKey`
+- `forge.watsonx.projectId`
+- `forge.budget.maxBobcoins`
 
 ---
 
-## Project structure
+## 📂 Project Structure
 
 ```
 forge/
 ├── src/
-│   └── main/
-│       ├── index.js          # Electron main process, IPC handlers
-│       └── preload.js        # Context bridge (main ↔ renderer)
-├── renderer/
-│   ├── index.html
-│   └── src/
-│       ├── App.jsx           # Phase router
-│       ├── app.css
-│       ├── store/
-│       │   └── forge.js      # Zustand state machine
-│       ├── hooks/
-│       │   └── useForgeOrchestrator.js  # Main workflow engine
-│       └── pages/
-│           ├── ProjectSelect.jsx
-│           ├── PromptInput.jsx
-│           ├── BuildView.jsx  # Live Bob stream + agent cards
-│           └── DoneView.jsx
-├── package.json
-└── vite.config.js
+│   ├── extension.ts      # Extension entry point & VS Code commands
+│   ├── mcp/              # MCP Server implementation
+│   ├── services/         # Watsonx & Resource Arbitrage logic
+│   └── webview/          # Sidebar UI controllers
+├── renderer/             # React-based Sidebar UI
+├── templates/            # Project scaffolding seeds
+└── package.json          # Extension manifest
 ```
 
 ---
 
-## What's stubbed / TODO
+## 🔗 Integrated with IBM watsonx.ai
 
-- [ ] `orchestrate:spawn` → wire to real Orchestrate agent endpoint
-- [ ] Code Engine execution bridge (run generated code, capture stdout)
-- [ ] Bob Shell binary path config (currently assumes `bob` is on PATH)
-- [ ] Cloudant persistence for project history
-- [ ] File output viewer in DoneView
+Forge leverages the full power of the **IBM watsonx.ai** ecosystem to provide model routing and task delegation that traditional AI agents cannot match. By treating "context" as a finite resource, Forge ensures your development stays fast, focused, and under budget.
