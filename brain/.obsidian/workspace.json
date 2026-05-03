@@ -185,6 +185,8 @@
   },
   "active": "143965710e5c3d86",
   "lastOpenFiles": [
+    "core/build/pure-mcp-log-interface-e2a1.md",
+    "core/build/expose-mcp-logs-d9f2.md",
     "core/build/forge-scaffold-agentic-c2d4.md",
     "core/build/fix-watsonx-mock-mode-b9f2.md",
     "core/build/fix-sse-cors-e9a2.md",
@@ -212,8 +214,6 @@
     "core/intent/scope.md",
     "core/answers",
     "core/intent/manifesto.md",
-    "core/blueprints/capabilities.md",
-    "core/blueprints/scopes.md",
     "core/archive",
     "core/tracking",
     "core/blueprints",

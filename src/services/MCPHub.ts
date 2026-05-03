@@ -145,6 +145,8 @@ export class MCPHub extends BaseService {
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
+      const taskId = Math.random().toString(36).substring(7);
+      const inputStr = JSON.stringify(args, null, 2);
 
       // Budget Gating
       const bufferTokens = this.config?.getConfig().budget.toolOverheadBuffer || 500;
@@ -152,65 +154,67 @@ export class MCPHub extends BaseService {
         throw new Error('Gated: Insufficient Bobcoin budget for tool execution.');
       }
 
-      switch (name) {
-        case "forge.ping": {
-          return { content: [{ type: "text", text: "Pong! Forge is alive." }] };
-        }
+      this._onEvent.fire({ 
+        type: 'SPAWN_SUBAGENT', 
+        payload: { 
+          id: taskId, 
+          name: name.replace('forge.', '').toUpperCase(), 
+          description: inputStr 
+        } 
+      });
+      this._onEvent.fire({ type: 'UPDATE_SUBAGENT', payload: { id: taskId, patch: { status: 'running' } } });
 
-        case "forge.bulk_write": {
-          if (!this.writer) throw new Error("AtomicWriter not initialized");
-          const taskId = Math.random().toString(36).substring(7);
-          const numFiles = Object.keys((args as any).files).length;
-          this._onEvent.fire({ type: 'SPAWN_SUBAGENT', payload: { id: taskId, name: 'Forge Bulk Write', description: `Writing ${numFiles} files` } });
-          this._onEvent.fire({ type: 'UPDATE_SUBAGENT', payload: { id: taskId, patch: { status: 'running' } } });
-          try {
+      try {
+        let response: any;
+        switch (name) {
+          case "forge.ping": {
+            response = { content: [{ type: "text", text: "Pong! Forge is alive." }] };
+            break;
+          }
+
+          case "forge.bulk_write": {
+            if (!this.writer) throw new Error("AtomicWriter not initialized");
             const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath || ".";
             await this.writer.bulkWrite(workspaceRoot, (args as any).files);
-            this._onEvent.fire({ type: 'UPDATE_SUBAGENT', payload: { id: taskId, patch: { status: 'done', output: `Successfully wrote ${numFiles} files.` } } });
-            return { content: [{ type: "text", text: `Successfully wrote ${numFiles} files.` }] };
-          } catch (err: any) {
-            this._onEvent.fire({ type: 'UPDATE_SUBAGENT', payload: { id: taskId, patch: { status: 'failed', error: err.message } } });
-            throw err;
+            response = { content: [{ type: "text", text: `Successfully wrote ${Object.keys((args as any).files).length} files.` }] };
+            break;
           }
-        }
 
-        case "forge.get_resource_metrics": {
-          if (!this.sentry) throw new Error("ResourceSentry not initialized");
-          const metrics = this.sentry.getSentryData();
-          return { content: [{ type: "text", text: JSON.stringify(metrics, null, 2) }] };
-        }
+          case "forge.get_resource_metrics": {
+            if (!this.sentry) throw new Error("ResourceSentry not initialized");
+            const metrics = this.sentry.getSentryData();
+            response = { content: [{ type: "text", text: JSON.stringify(metrics, null, 2) }] };
+            break;
+          }
 
-        case "forge.scaffold": {
-          if (!this.arbitrator) throw new Error("ResourceArbitrator not initialized");
-          const { requirements, name: projectName } = args as any;
-          
-          const taskId = Math.random().toString(36).substring(7);
-          this._onEvent.fire({ type: 'SPAWN_SUBAGENT', payload: { id: taskId, name: 'Forge Scaffold', description: `Finding scaffolding script for: ${projectName}` } });
-          this._onEvent.fire({ type: 'UPDATE_SUBAGENT', payload: { id: taskId, patch: { status: 'running' } } });
-
-          try {
+          case "forge.scaffold": {
+            if (!this.arbitrator) throw new Error("ResourceArbitrator not initialized");
+            const { requirements, name: projectName } = args as any;
             const prompt = `You are an expert script finding AI. The user wants to scaffold a new project named "${projectName}" with these requirements: "${requirements}". 
 Provide the exact CLI commands (e.g. npx, pip, cargo, django-admin, etc.) to generate the most bare-bones, minimal project structure for this. 
 Return ONLY the raw commands in a structured markdown code block. Do not write the actual source code files yourself, just the scaffolding commands.`;
-
-            const response = await this.arbitrator.executeTask({ task: prompt });
-            
-            this._onEvent.fire({ type: 'UPDATE_SUBAGENT', payload: { id: taskId, patch: { status: 'done', output: `Found scripts for ${projectName}` } } });
-            return { content: [{ type: "text", text: response }] };
-          } catch (err: any) {
-            this._onEvent.fire({ type: 'UPDATE_SUBAGENT', payload: { id: taskId, patch: { status: 'failed', error: err.message } } });
-            throw err;
+            const result = await this.arbitrator.executeTask({ task: prompt });
+            response = { content: [{ type: "text", text: result }] };
+            break;
           }
+
+          case "forge.execute_task": {
+            if (!this.arbitrator) throw new Error("ResourceArbitrator not initialized");
+            const result = await this.arbitrator.executeTask({ task: (args as any).task });
+            response = { content: [{ type: "text", text: result }] };
+            break;
+          }
+
+          default:
+            throw new Error(`Tool not found: ${name}`);
         }
 
-        case "forge.execute_task": {
-          if (!this.arbitrator) throw new Error("ResourceArbitrator not initialized");
-          const response = await this.arbitrator.executeTask({ task: (args as any).task });
-          return { content: [{ type: "text", text: response }] };
-        }
-
-        default:
-          throw new Error(`Tool not found: ${name}`);
+        const outputStr = typeof response.content[0].text === 'string' ? response.content[0].text : JSON.stringify(response, null, 2);
+        this._onEvent.fire({ type: 'UPDATE_SUBAGENT', payload: { id: taskId, patch: { status: 'done', output: outputStr } } });
+        return response;
+      } catch (err: any) {
+        this._onEvent.fire({ type: 'UPDATE_SUBAGENT', payload: { id: taskId, patch: { status: 'failed', error: err.message } } });
+        throw err;
       }
     });
   }

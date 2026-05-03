@@ -1,16 +1,14 @@
 import React from 'react'
-import { BuildView } from './pages/BuildView'
-import { ChatView } from './pages/ChatView'
 import { useForgeStore } from './store/forge'
 import { BobcoinFuelGauge } from './components/BobcoinFuelGauge'
+import { ActivityStream } from './components/ActivityStream'
 import './App.css'
 
 export default function App() {
-  const phase = useForgeStore((state) => state.phase)
-  const setPhase = useForgeStore((state) => state.setPhase)
   const updateBobcoins = useForgeStore((state) => state.updateBobcoins)
   const spawnSubagent = useForgeStore((state) => state.spawnSubagent)
   const updateSubagent = useForgeStore((state) => state.updateSubagent)
+  const setPhase = useForgeStore((state) => state.setPhase)
 
   // Bind bridge to store
   React.useEffect(() => {
@@ -22,27 +20,14 @@ export default function App() {
     }
   }, [updateBobcoins, spawnSubagent, updateSubagent, setPhase])
   
-  if (phase === 'idle') {
-    return (
-      <div className="page" style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <h1 style={{ color: '#00f2fe', fontSize: '3rem', margin: 0 }}>⬡ Forge</h1>
-        <p style={{ color: '#888', marginBottom: '20px' }}>Universal AI Orchestration</p>
-        
-        <BobcoinFuelGauge />
-
-        <button 
-          onClick={() => setPhase('interview')}
-          style={{ padding: '12px 30px', fontSize: '1rem', marginTop: '20px' }}
-        >
-          Begin Discovery
-        </button>
+  return (
+    <div className="page" style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h1 style={{ color: '#00f2fe', fontSize: '1.5rem', margin: 0 }}>⬡ Forge</h1>
+        <BobcoinFuelGauge compact />
       </div>
-    )
-  }
-
-  if (phase === 'interview') {
-    return <ChatView />
-  }
-
-  return <BuildView />
+      
+      <ActivityStream />
+    </div>
+  )
 }
