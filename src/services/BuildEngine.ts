@@ -44,7 +44,8 @@ export class BuildEngine extends BaseService {
         ? (path.isAbsolute(requestedTargetPath) ? requestedTargetPath : path.join(workspaceRoot, requestedTargetPath))
         : path.join(workspaceRoot, name);
 
-      const templatesDir = path.join(workspaceRoot, 'templates');
+      // Use the extension's embedded templates directory, not the user's workspace
+      const templatesDir = path.join(__dirname, '..', '..', 'templates');
       this.log(`Scaffolding "${name}" using library at ${templatesDir}`);
 
       const availableTemplates = this.getAvailableTemplates(templatesDir);

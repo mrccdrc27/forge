@@ -24,6 +24,7 @@ export class MCPHub extends BaseService {
   private app?: express.Application;
   private httpServer?: any;
   private transports: Map<string, SSEServerTransport> = new Map();
+  private activeServers: Map<string, Server> = new Map();
   private writer?: AtomicWriter;
   private sentry?: ResourceSentry;
   private arbitrator?: ResourceArbitrator;
@@ -41,21 +42,6 @@ export class MCPHub extends BaseService {
   public readonly onEvent = this._onEvent.event;
 
   async init() {
-    this.server = new Server(
-      {
-        name: "forge-mcp-server",
-        version: "0.1.0",
-      },
-      {
-        capabilities: {
-          tools: {},
-        },
-      }
-    );
-
-    this.setupHandlers();
-    // Don't start server yet - wait for all dependencies to be set
-    
     this.log("MCP Hub Initialized (server will start when ready).");
   }
 
@@ -129,10 +115,8 @@ export class MCPHub extends BaseService {
     this.contextEngine = contextEngine;
   }
 
-  private setupHandlers() {
-    if (!this.server) return;
-
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  private setupHandlers(server: Server) {
+    server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
         {
           name: "forge.ping",
@@ -263,7 +247,7 @@ export class MCPHub extends BaseService {
       ],
     }));
 
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
       const taskId = Math.random().toString(36).substring(7);
       const inputStr = JSON.stringify(args, null, 2);
@@ -429,23 +413,36 @@ export class MCPHub extends BaseService {
 
       this.app.get("/sse", async (req: express.Request, res: express.Response) => {
         try {
-          // Validate server is ready
-          if (!this.server) {
-            throw new Error("MCP Server not initialized");
-          }
+          // Create a new Server instance per connection as required by MCP SDK
+          const server = new Server(
+            {
+              name: "forge-mcp-server",
+              version: "0.1.0",
+            },
+            {
+              capabilities: {
+                tools: {},
+              },
+            }
+          );
+          
+          this.setupHandlers(server);
 
-          // Create a new transport for this connection (do NOT close/recreate the Server)
+          // Create a new transport for this connection
           const transport = new SSEServerTransport("/messages", res);
           const sessionId = transport.sessionId;
           this.transports.set(sessionId, transport);
+          this.activeServers.set(sessionId, server);
 
           // Clean up when client disconnects
           res.on('close', () => {
             this.transports.delete(sessionId);
+            this.activeServers.delete(sessionId);
+            server.close().catch(() => {});
             this.log(`SSE client disconnected (session ${sessionId}). Active sessions: ${this.transports.size}`);
           });
 
-          await this.server.connect(transport);
+          await server.connect(transport);
           this.log(`Bob connected to MCP SSE (session ${sessionId}). Active sessions: ${this.transports.size}`);
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
@@ -521,9 +518,10 @@ export class MCPHub extends BaseService {
   }
 
   dispose() {
+    this.activeServers.forEach(s => s.close().catch(() => {}));
+    this.activeServers.clear();
     this.transports.forEach(t => t.close().catch(() => {}));
     this.transports.clear();
-    this.server?.close();
     this.httpServer?.close();
   }
 }
