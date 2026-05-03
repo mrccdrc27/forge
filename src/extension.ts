@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ForgeController } from './ForgeController';
+import { ForgeStorageManager } from './services/ForgeStorageManager';
 import { ContextEngine } from './services/ContextEngine';
 import { ResourceSentry } from './services/ResourceSentry';
 import { WatsonxClient } from './services/WatsonxClient';
@@ -23,7 +24,23 @@ export async function activate(context: vscode.ExtensionContext) {
   
   const output = controller.getOutputChannel();
 
-  // Initialize ConfigManager first - all other services depend on it
+  // Initialize ForgeStorageManager FIRST - creates .forge directory structure
+  output.appendLine('🔨 Initializing Forge Storage...');
+  const storageManager = new ForgeStorageManager(output);
+  await controller.registerService(storageManager);
+  controller.setStorageManager(storageManager);
+  
+  // Show storage statistics
+  const stats = await storageManager.getStorageStats();
+  output.appendLine(`📊 Storage initialized: ${(stats.totalSize / 1024).toFixed(2)} KB total`);
+  
+  // Clean up old temporary files
+  const cleanedFiles = await storageManager.cleanupTempFiles(24);
+  if (cleanedFiles > 0) {
+    output.appendLine(`🧹 Cleaned up ${cleanedFiles} temporary file(s)`);
+  }
+
+  // Initialize ConfigManager - all other services depend on it
   const config = new ConfigManager(output);
   await controller.registerService(config);
 

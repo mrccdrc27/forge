@@ -1,12 +1,18 @@
 import * as vscode from 'vscode';
 import { ForgeCommandType, WebviewMessage } from '../interfaces/forge';
+import { ForgeStorageManager } from '../services/ForgeStorageManager';
 
 export class ForgeSidebarProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'forge.sidebar';
 
   private _view?: vscode.WebviewView;
+  private _storageManager?: ForgeStorageManager;
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
+
+  setStorageManager(storageManager: ForgeStorageManager) {
+    this._storageManager = storageManager;
+  }
 
   resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -81,6 +87,32 @@ export class ForgeSidebarProvider implements vscode.WebviewViewProvider {
           case 'projects:save-plan':
             if (requestId) {
               webviewView.webview.postMessage({ requestId, payload: { success: true } });
+            }
+            break;
+            
+          case 'LOAD_STORAGE':
+            // Load chat instances from persistent storage
+            if (this._storageManager) {
+              const storageData = await this._storageManager.loadChatInstances();
+              webviewView.webview.postMessage({
+                command: 'STORAGE_LOADED',
+                data: storageData
+              });
+            } else {
+              webviewView.webview.postMessage({
+                command: 'STORAGE_LOADED',
+                data: { instances: [], currentInstanceId: null }
+              });
+            }
+            break;
+            
+          case 'SAVE_STORAGE':
+            // Save chat instances to persistent storage
+            if (this._storageManager && data) {
+              await this._storageManager.saveChatInstances(
+                data.chatInstances || [],
+                data.currentChatInstanceId || null
+              );
             }
             break;
             

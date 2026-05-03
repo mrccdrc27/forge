@@ -13,11 +13,13 @@ import { DependencyAdvisor } from './services/DependencyAdvisor';
 import { DocumentationEngine } from './services/DocumentationEngine';
 import { RetryAdvisor } from './services/RetryAdvisor';
 import { CleanupScanner } from './services/CleanupScanner';
+import { ForgeStorageManager } from './services/ForgeStorageManager';
 
 export class ForgeController {
   private services: Map<string, IForgeService> = new Map();
   private output = vscode.window.createOutputChannel("Forge");
   private sidebarProvider: ForgeSidebarProvider;
+  private storageManager?: ForgeStorageManager;
   private sentry?: ResourceSentry;
   private watsonx?: WatsonxClient;
   private arbitrator?: ResourceArbitrator;
@@ -33,6 +35,15 @@ export class ForgeController {
 
   constructor(context: vscode.ExtensionContext) {
     this.sidebarProvider = new ForgeSidebarProvider(context.extensionUri);
+  }
+
+  setStorageManager(storageManager: ForgeStorageManager) {
+    this.storageManager = storageManager;
+    this.sidebarProvider.setStorageManager(storageManager);
+  }
+
+  getStorageManager() {
+    return this.storageManager;
   }
 
   setHistoryExporter(historyExporter: HistoryExporter) {

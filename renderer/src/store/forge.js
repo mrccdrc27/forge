@@ -1,23 +1,37 @@
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
 
 /**
- * VS Code Webview State Adapter
- * Uses the acquireVsCodeApi() state persistence
+ * File-based storage adapter
+ * Communicates with ForgeStorageManager via postMessage
  */
-const vscodeStorage = {
-  getItem: (name) => {
-    const state = window.vscode?.getState();
-    return state ? state[name] : null;
+const fileStorage = {
+  // Load initial state from backend on mount
+  loadInitialState: async () => {
+    return new Promise((resolve) => {
+      const handler = (event) => {
+        const message = event.data;
+        if (message.command === 'STORAGE_LOADED') {
+          window.removeEventListener('message', handler);
+          resolve(message.data);
+        }
+      };
+      window.addEventListener('message', handler);
+      window.vscode?.postMessage({ command: 'LOAD_STORAGE' });
+      
+      // Timeout fallback
+      setTimeout(() => {
+        window.removeEventListener('message', handler);
+        resolve(null);
+      }, 5000);
+    });
   },
-  setItem: (name, value) => {
-    const state = window.vscode?.getState() || {};
-    window.vscode?.setState({ ...state, [name]: value });
-  },
-  removeItem: (name) => {
-    const state = window.vscode?.getState() || {};
-    delete state[name];
-    window.vscode?.setState(state);
+  
+  // Save state to backend
+  saveState: (chatInstances, currentChatInstanceId) => {
+    window.vscode?.postMessage({
+      command: 'SAVE_STORAGE',
+      data: { chatInstances, currentChatInstanceId }
+    });
   }
 };
 
@@ -56,8 +70,30 @@ export const useForgeStore = create(
 
       // ─── Chat Instances ──────────────────────────────────────────────────────
       // Group subagents by chat instance for better organization
+      // Now persisted to .forge/history/chat-instances.json
       chatInstances: [],    // [{ id, label, timestamp, subagents: [...] }]
       currentChatInstanceId: null,
+      storageInitialized: false,
+      
+      // Initialize storage from file system
+      initializeStorage: async () => {
+        const data = await fileStorage.loadInitialState();
+        if (data) {
+          set({
+            chatInstances: data.chatInstances || [],
+            currentChatInstanceId: data.currentChatInstanceId || null,
+            storageInitialized: true
+          });
+        } else {
+          set({ storageInitialized: true });
+        }
+      },
+      
+      // Persist to file system
+      persistStorage: () => {
+        const state = get();
+        fileStorage.saveState(state.chatInstances, state.currentChatInstanceId);
+      },
       
       // Create or get current chat instance
       ensureChatInstance: (chatInstanceId) => set((s) => {
@@ -78,10 +114,15 @@ export const useForgeStore = create(
           subagents: []
         };
         
-        return {
+        const newState = {
           chatInstances: [...s.chatInstances, newInstance],
           currentChatInstanceId: instanceId
         };
+        
+        // Persist to file system
+        setTimeout(() => fileStorage.saveState(newState.chatInstances, newState.currentChatInstanceId), 0);
+        
+        return newState;
       }),
       
       // ─── Subagents ───────────────────────────────────────────────────────────
@@ -121,11 +162,16 @@ export const useForgeStore = create(
             : ci
         );
         
-        return {
+        const newState = {
           subagents: [...s.subagents, newSubagent],
           chatInstances: instances,
           currentChatInstanceId: chatInstanceId
         };
+        
+        // Persist to file system
+        setTimeout(() => fileStorage.saveState(newState.chatInstances, newState.currentChatInstanceId), 0);
+        
+        return newState;
       }),
       
       updateSubagent: (id, patch) => set((s) => {
@@ -137,13 +183,22 @@ export const useForgeStore = create(
           subagents: ci.subagents.map(a => a.id === id ? { ...a, ...patch } : a)
         }));
         
-        return {
+        const newState = {
           subagents: updatedSubagents,
           chatInstances: updatedInstances
         };
+        
+        // Persist to file system
+        setTimeout(() => fileStorage.saveState(newState.chatInstances, s.currentChatInstanceId), 0);
+        
+        return newState;
       }),
       
-      clearSubagents: () => set({ subagents: [], chatInstances: [], currentChatInstanceId: null }),
+      clearSubagents: () => {
+        set({ subagents: [], chatInstances: [], currentChatInstanceId: null });
+        // Persist cleared state
+        setTimeout(() => fileStorage.saveState([], null), 0);
+      },
 
       // ─── Verification ────────────────────────────────────────────────────────
       verificationReport: null,   // { passed: [], failed: [], verdict: 'pass'|'retry' }
@@ -171,34 +226,24 @@ export const useForgeStore = create(
       clearChatHistory: () => set({ chatHistory: [] }),
 
       // ─── Reset ───────────────────────────────────────────────────────────────
-      reset: () => set({
-        phase: 'idle',
-        userPrompt: '',
-        chatHistory: [],
-        bobStream: '',
-        bobThinking: false,
-        masterPlan: null,
-        subagents: [],
-        chatInstances: [],
-        currentChatInstanceId: null,
-        verificationReport: null,
-        iteration: 0,
-        error: null
-      })
-    }),
-    {
-      name: 'forge-store',
-      storage: createJSONStorage(() => vscodeStorage),
-      // Only persist logs and chat history to avoid getting stuck in weird UI phases on reload
-      partialize: (state) => ({
-        subagents: state.subagents,
-        chatInstances: state.chatInstances,
-        currentChatInstanceId: state.currentChatInstanceId,
-        chatHistory: state.chatHistory,
-        projects: state.projects,
-        currentProject: state.currentProject,
-        bobcoins: state.bobcoins
-      })
-    }
+      reset: () => {
+        set({
+          phase: 'idle',
+          userPrompt: '',
+          chatHistory: [],
+          bobStream: '',
+          bobThinking: false,
+          masterPlan: null,
+          subagents: [],
+          chatInstances: [],
+          currentChatInstanceId: null,
+          verificationReport: null,
+          iteration: 0,
+          error: null
+        });
+        // Persist reset state
+        setTimeout(() => fileStorage.saveState([], null), 0);
+      }
+    })
   )
 )

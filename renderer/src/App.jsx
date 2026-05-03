@@ -5,11 +5,21 @@ import { ActivityStream } from './components/ActivityStream'
 import './App.css'
 
 export default function App() {
+  const [isLoading, setIsLoading] = React.useState(true)
   const updateBobcoins = useForgeStore((state) => state.updateBobcoins)
   const spawnSubagent = useForgeStore((state) => state.spawnSubagent)
   const updateSubagent = useForgeStore((state) => state.updateSubagent)
   const setPhase = useForgeStore((state) => state.setPhase)
   const ensureChatInstance = useForgeStore((state) => state.ensureChatInstance)
+  const initializeStorage = useForgeStore((state) => state.initializeStorage)
+  const storageInitialized = useForgeStore((state) => state.storageInitialized)
+
+  // Initialize storage on mount
+  React.useEffect(() => {
+    initializeStorage().then(() => {
+      setIsLoading(false)
+    })
+  }, [initializeStorage])
 
   // Bind bridge to store
   React.useEffect(() => {
@@ -22,6 +32,23 @@ export default function App() {
     }
   }, [updateBobcoins, spawnSubagent, updateSubagent, setPhase, ensureChatInstance])
   
+  if (isLoading || !storageInitialized) {
+    return (
+      <div className="page" style={{
+        height: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        color: '#888'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '2em', marginBottom: '10px' }}>🔨</div>
+          <div>Loading Forge...</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="page" style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
